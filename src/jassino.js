@@ -1,56 +1,82 @@
+var jassino = {
+    NS: {}, //default namespace
+    super_prefix : '$',
+
+    DuplicationError: function(d){this.d=d;},
+    InvalidNamespaceError: function(d){this.d = d;},
+
+    extend: function(destination, source, override) {
+        if (!destination || !source) return destination;
+        for (var field in source)
+            if ((destination[field] !== source[field]) &&
+                (destination !== source[field]) && //recursion prevention, from JQuery.extend()
+                (override === true || ! destination.hasOwnProperty(field)))
+                destination[field] = source[field];
+        return destination;
+    },
+
+    slice: function(arr, begin, end){
+        return Array.prototype.slice.call(arr, begin, end)
+    }
+};
+
 (function() {
-    var _extend = Jascuti.extend,
-        _slice = Jascuti.slice,
-        _nsadd = Jascuti.ns.add,
-        _super_prefix = '$',
-        _nsprefix = 'jassino.',
-        _ns = {};
+    var _extend = jassino.extend;
 
     function _mix(base, mixins){
         for (var i = 0; i < mixins.length; i++)
-            _extend(base, mixins[i], true);
+            _extend(base, mixins[i], true); //overriding previous members
     }
 
-    //makes Type method to change namespace dynamically
-    function _make_nser(Type_name, Type){
-        _ns[Type_name] = ''
-        return function(name) {
-            _ns[Type_name] = name ? name + '.' : '';
-            return Type;
+    function _process_args(args){
+        var shift = 0,
+            ns = jassino.NS;
+        if (typeof args[0] !== 'string'){
+            shift = 1
+            ns = args[0]
+        }
+        var len = args.length
+        return {
+            body: args[len - 1],
+            heritage: jassino.slice(args, shift + 1, len - 1), //Super class or Super traits set
+            ns: ns,
+            name: args[shift]
         }
     }
 
+    function _nsadd(data, obj){
+        if (! data.ns)
+            throw new jassino.InvalidNamespaceError(data.ns)
+        if (data.ns[data.name] != undefined)
+            throw new jassino.DuplicationError(data)
+        data.ns[data.name] = obj
+    }
+
     //===================================================================================================================
-    var Trait_name = 'Trait'
-    var Trait = _nsadd(_nsprefix + Trait_name, function(){
-        var len = arguments.length,
-            body = arguments[len - 1],
-            SuperTraits = _slice(arguments, 1, len - 1),
+    jassino.Trait = function(){
+        var data = _process_args(arguments),
             trait = {};
 
-        _nsadd(_ns[Trait_name] + arguments[0], trait);
+        _nsadd(data, trait)
 
-        if (SuperTraits) _mix(trait, SuperTraits);
+        if (data.heritage) _mix(trait, data.heritage); //Super Traits
+        _extend(trait, data.body, true)
         return trait;
-    })
-
-    Trait.ns = _make_nser(Trait_name, Trait)
+    }
 
     //===================================================================================================================
-    var Class_name = 'Class';
-    var Class = _nsadd(_nsprefix + Class_name, function() {
-        var len = arguments.length,
-            body = arguments[len - 1],
-            SuperClass = len > 2 ? arguments[1] : null,
-            name = arguments[0],
-            ARG = body.A_,   //constructor arguments
-            SARG = body.A$, //super arguments
+    jassino.Class = function() {
+        var data = _process_args(arguments),
+            body = data.body,
+            SuperClass = data.heritage ? data.heritage[0] : null,
+            ARG = data.body.A_,   //constructor arguments
+            SARG = data.body.A$, //super arguments
             klass;
 
         delete body.A_
         delete body.A$
 
-        function _init() { //contains 'name' in the closure !!!!!
+        function _init() {
             if (ARG){
                 for (var i =0; i < ARG.length; i += 2)
                     this[ARG[i]] = ARG[i + 1]
@@ -60,7 +86,7 @@
         }
 
         if (body._) {
-            var saved = body._  //body._ ref will be deleted below
+            var saved = body._
             klass = function() {
                 _init.call(this)
                 saved.apply(this, arguments)
@@ -70,7 +96,7 @@
         }
         delete body._
 
-       _nsadd(_ns[Class_name] + arguments[0], klass);
+        _nsadd(data, klass)
 
         if (SuperClass) {
 
@@ -81,7 +107,7 @@
             klass.prototype.constructor = klass;
             klass.$ = SuperClass;
             if ( ! SARG) //manual super() call - create only if wasn't automatic one
-                klass.prototype[_super_prefix + name] = function() {
+                klass.prototype[jassino.super_prefix + data.name] = function() {
                     SuperClass.apply(this, arguments)
                 }
 
@@ -90,19 +116,17 @@
 
         if (body.MIX) _mix(klass.prototype, body.MIX)
         delete body.MIX
-        Class.extendClass(klass, body);
+        jassino.Class.extendClass(klass, body);
 
         return klass;
-    })
+    }
 
-    Class.extendClass = function(cls, body, override) {
+    jassino.Class.extendClass = function(cls, body) {
         if (body.CLS) {
             _extend(cls, body.CLS, true);
             delete body.CLS;
         }
-        _extend(cls.prototype, body, override)
+        _extend(cls.prototype, body, true)
     }
-
-    Class.ns = _make_nser(Class_name, Class)
 
 })();
