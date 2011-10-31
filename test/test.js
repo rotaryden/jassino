@@ -125,18 +125,18 @@ test("Multiple inheritance", 6, function() {
     Trait(ns, 'A', {
         a: 'a',
         ovf: function(){return 'A'},
-        trait_ovf: function(){ return 'trait_A';},
-        trait_ovf2: function(){ return 'trait_A_2';}
+        anc_ovf: function(){ return 'anc_A';},
+        anc_ovf2: function(){ return 'anc_A_2';}
     })
     Trait(ns, 'B', {
         b: 'b',
         ovf: function(){return 'B'},
-        trait_ovf: function(){ return 'trait_B';},
-        trait_ovf2: function(){ return 'trait_B_2';}
+        anc_ovf: function(){ return 'anc_B';},
+        anc_ovf2: function(){ return 'anc_B_2';}
     })
     Trait(ns, 'C', {
         c: 'c',
-        trait_ovf: function(){ return 'trait_C';}
+        anc_ovf: function(){ return 'anc_C';}
     })
     Trait(ns, 'T', [ns.A, ns.B, ns.C], {
         ovf: function(){ return 'T';}
@@ -146,10 +146,30 @@ test("Multiple inheritance", 6, function() {
     equal(ns.T.c, 'c', 'inherited variable 3')
 
     equal(ns.T.ovf(), 'T', 'Overriden ovf() -> T.ovf()')
-    equal(ns.T.trait_ovf(), 'trait_C', 'Inheritance order: override 1 - last override in C')
-    equal(ns.T.trait_ovf2(), 'trait_B_2', 'Inheritance order: override 2 - last override in B')
+    equal(ns.T.anc_ovf(), 'anc_C', 'Inheritance order: override 1 - last override in C')
+    equal(ns.T.anc_ovf2(), 'anc_B_2', 'Inheritance order: override 2 - last override in B')
 });
 //========================================================================================================================
+test("Inheritance transitive law, inheritance no-array syntax", 4, function() {
+    Trait(ns, 'A', {
+        a: 'a',
+        ovf: function(){return 'A'},
+        anc_ovf: function(){ return 'anc_A';}
+    })
+    Trait(ns, 'B', ns.A, {
+        b: 'b',
+        ovf: function(){return 'B'},
+        anc_ovf: function(){ return 'anc_B';}
+    })
+    Trait(ns, 'T', ns.B, {
+        ovf: function(){ return 'T';}
+    })
+    equal(ns.T.a, 'a', 'inherited variable')
+    equal(ns.T.b, 'b', 'inherited variable 2')
+
+    equal(ns.T.ovf(), 'T', 'Overriden ovf() -> T.ovf()')
+    equal(ns.T.anc_ovf(), 'anc_B', 'Inheritance override stack: last override happened in B')
+});
 //========================================================================================================================
 //========================================================================================================================
 //========================================================================================================================
