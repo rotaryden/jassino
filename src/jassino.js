@@ -35,10 +35,11 @@ var jassino = {
             shift = 1
             ns = args[0]
         }
-        var len = args.length
+        var len = args.length,
+            h = args[shift + 1]
         return {
             body: args[len - 1],
-            heritage: jassino.slice(args, shift + 1, len - 1), //Super class or Super traits set
+            heritage: h instanceof Array? h : [h], //Super class or Super traits set
             ns: ns,
             name: args[shift]
         }
