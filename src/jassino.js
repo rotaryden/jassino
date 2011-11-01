@@ -1,6 +1,8 @@
 var jassino = {
     NS: {}, //default namespace
-    super_prefix : '$',
+    _SUP : '$',
+    _CTOR: '_',
+
 
     DuplicationError: function(d){this.d=d;},
     InvalidNamespaceError: function(d){this.d = d;},
@@ -13,6 +15,13 @@ var jassino = {
                 (override === true || ! destination.hasOwnProperty(field)))
                 destination[field] = source[field];
         return destination;
+    },
+
+    foreach: function(obj, func){
+        for (var pname in obj)
+            if (obj.hasOwnProperty(pname)){
+                func(pname);
+            }
     },
 
     slice: function(arr, begin, end){
@@ -70,64 +79,52 @@ var jassino = {
         var data = _process_args(arguments),
             body = data.body,
             SuperClass = data.heritage ? data.heritage[0] : null,
-            ARG = data.body.A_,   //constructor arguments
-            SARG = data.body.A$, //super arguments
-            klass;
+            SARG = body[jassino._SUP]; //super arguments
+        delete body[jassino._SUP]
 
-        delete body.A_
-        delete body.A$
-
-        function _init() {
-            if (ARG){
-                for (var i =0; i < ARG.length; i += 2)
-                    this[ARG[i]] = ARG[i + 1]
-            }
+        var saved_ctor = body[jassino._CTOR]
+        delete body[jassino._CTOR]
+        var klass = function() {
             if (SuperClass && SARG)
                 SuperClass.apply(this, SARG)
+            if (saved_ctor)
+                saved_ctor.apply(this, arguments)
         }
-
-        if (body._) {
-            var saved = body._
-            klass = function() {
-                _init.call(this)
-                saved.apply(this, arguments)
-            }
-        } else {
-            klass = _init
-        }
-        delete body._
 
         _nsadd(data, klass)
 
         if (SuperClass) {
 
             var SuperClassEmpty = function(){};
-            SuperClassEmpty.prototype = SuperClass.prototype;
+            SuperClassEmpty.prototype = SuperClass.prototype; //protect SuperClass from modification
             klass.prototype = new SuperClassEmpty();
 
             klass.prototype.constructor = klass;
-            klass.$ = SuperClass;
-            if ( ! SARG) //manual super() call - create only if wasn't automatic one
-                klass.prototype[jassino.super_prefix + data.name] = function() {
+            klass[jassino._SUP] = SuperClass;
+            
+            //explicit super call - create only if wasn't called automatically upon super arguments from body
+            if ( ! SARG)
+                klass.prototype[jassino._SUP + data.name] = function() {
                     SuperClass.apply(this, arguments)
                 }
 
-            _extend(klass, SuperClass, false);
+            _extend(klass, SuperClass, false);   //Class Members inherited from SuperClass
         }
 
-        if (body.MIX) _mix(klass.prototype, body.MIX)
-        delete body.MIX
-        jassino.Class.extendClass(klass, body);
+        if (body.MIX) {
+            _mix(klass.prototype, body.MIX)
+            delete body.MIX
+        }
 
-        return klass;
-    }
-
-    jassino.Class.extendClass = function(cls, body) {
-        if (body.CLS) {
-            _extend(cls, body.CLS, true);
+        _extend(klass.prototype, body, true) //this should be LAST write into prototype
+                                             //to provide right override order !!!
+        
+        if (body.CLS) {                     //Class Members specified in body
+            _extend(klass, body.CLS, true);
             delete body.CLS;
         }
-        _extend(cls.prototype, body, true)
+
+        return klass;
     }
 
 })();

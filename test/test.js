@@ -171,7 +171,130 @@ test("Inheritance transitive law, inheritance no-array syntax", 4, function() {
     equal(ns.T.anc_ovf(), 'anc_B', 'Inheritance override stack: last override happened in B')
 });
 //========================================================================================================================
+//================================================== Classes =============================================================
 //========================================================================================================================
+module("Basic Class operations", {
+    setup: function() {
+        ns = {}
+    },
+    teardown: function() {
+        ns = {}
+    }
+});
+
+test("Members setup", 1, function() {
+    Class(ns, 'T', {
+        a: 5,
+        f: function(){return this.a}
+    })
+	equal(ns.T.f(), 5, 'member call')
+});
+
+test("Constructor manual setup", 1, function() {
+    Class(ns, 'T', {
+        _: function(){},
+        a: 5,
+        f: function(){return this.a}
+    })
+	equal(ns.T.f(), 5, 'member call')
+});
+
+/*========================================================================================================================
+module("Trait inheritance", {
+    setup: function() {
+        ns = {}
+    },
+    teardown: function() {
+        ns = {}
+    }
+});
+
+
+test("Single inheritance", 15, function() {
+    Trait(ns, 'A', {
+        a: 'a',
+        ov: 'ov',
+        af: function(){return [this.a, this.ov]},
+        ovf: function(){ return [this.a, this.ov];}
+    })
+    Trait(ns, 'T', ns.A, {
+        t: 'T',
+        ov: 'T_ov',
+        tf: function(){return [this.t, this.ov, this.a];},
+        ovf: function(){ return [this.t, this.ov, this.a];}
+    })
+    equal(ns.A.af()[0], 'a', 'A.af() - ancestor\'s members do not corrupted')
+    equal(ns.A.af()[1], 'ov', 'A.af() - ancestor\'s members do not corrupted 2')
+    equal(ns.A.ovf()[0], 'a', 'A.ovf() - ancestor\'s members do not corrupted')
+    equal(ns.A.ovf()[1], 'ov', 'A.ovf() - ancestor\'s members do not corrupted 2')
+
+    equal(ns.T.t, 'T', 't = "T" - own members not corrupted')
+    equal(ns.T.ov, 'T_ov', 't = "T" - own overriden members are correct')
+
+    equal(ns.T.a, 'a', 'T.a = "a" - inherited variable')
+
+    equal(ns.T.tf()[0], 'T', 'Own T.tf(), should correctly access ancestor/overriden fields')
+    equal(ns.T.tf()[1], 'T_ov', 'Own T.tf(), should correctly access ancestor/overriden fields 2')
+    equal(ns.T.tf()[2], 'a', 'Own T.tf(), should correctly access ancestor/overriden fields 3')
+
+    equal(ns.T.af()[0], 'a' , 'Virtual function effect: Inherited A.af() -> T.af(), overriden variables should be changed')
+    equal(ns.T.af()[1], 'T_ov' , 'Virtual function effect: Inherited A.af() -> T.af(), overriden variables should be changed 2')
+
+    equal(ns.T.ovf()[0], 'T', 'Overriden A.ovf() -> T.ovf() - output should be as in T.tf()')
+    equal(ns.T.ovf()[1], 'T_ov', 'Overriden A.ovf() -> T.ovf() - output should be as in T.tf() 2')
+    equal(ns.T.ovf()[2], 'a', 'Overriden A.ovf() -> T.ovf() - output should be as in T.tf() 3')
+});
+
+
+test("Multiple inheritance", 6, function() {
+    Trait(ns, 'A', {
+        a: 'a',
+        ovf: function(){return 'A'},
+        anc_ovf: function(){ return 'anc_A';},
+        anc_ovf2: function(){ return 'anc_A_2';}
+    })
+    Trait(ns, 'B', {
+        b: 'b',
+        ovf: function(){return 'B'},
+        anc_ovf: function(){ return 'anc_B';},
+        anc_ovf2: function(){ return 'anc_B_2';}
+    })
+    Trait(ns, 'C', {
+        c: 'c',
+        anc_ovf: function(){ return 'anc_C';}
+    })
+    Trait(ns, 'T', [ns.A, ns.B, ns.C], {
+        ovf: function(){ return 'T';}
+    })
+    equal(ns.T.a, 'a', 'inherited variable')
+    equal(ns.T.b, 'b', 'inherited variable 2')
+    equal(ns.T.c, 'c', 'inherited variable 3')
+
+    equal(ns.T.ovf(), 'T', 'Overriden ovf() -> T.ovf()')
+    equal(ns.T.anc_ovf(), 'anc_C', 'Inheritance order: override 1 - last override in C')
+    equal(ns.T.anc_ovf2(), 'anc_B_2', 'Inheritance order: override 2 - last override in B')
+});
+//========================================================================================================================
+test("Inheritance transitive law, inheritance no-array syntax", 4, function() {
+    Trait(ns, 'A', {
+        a: 'a',
+        ovf: function(){return 'A'},
+        anc_ovf: function(){ return 'anc_A';}
+    })
+    Trait(ns, 'B', ns.A, {
+        b: 'b',
+        ovf: function(){return 'B'},
+        anc_ovf: function(){ return 'anc_B';}
+    })
+    Trait(ns, 'T', ns.B, {
+        ovf: function(){ return 'T';}
+    })
+    equal(ns.T.a, 'a', 'inherited variable')
+    equal(ns.T.b, 'b', 'inherited variable 2')
+
+    equal(ns.T.ovf(), 'T', 'Overriden ovf() -> T.ovf()')
+    equal(ns.T.anc_ovf(), 'anc_B', 'Inheritance override stack: last override happened in B')
+});*/
 //========================================================================================================================
 //========================================================================================================================
 //========================================================================================================================
