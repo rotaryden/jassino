@@ -1,5 +1,16 @@
+function dump(data, typ) {
+    var s = QUnit.jsDump.parse(data, typ ? typ : typeof data)
+	return s.replace(/[\&<>]/g, function(s) {
+		switch(s) {
+			case "&": return "&amp;";
+			case "<": return "&lt;";
+			case ">": return "&gt;";
+			default: return s;
+		}
+	});
+}
+
 var ns = {},
-    dump = function(data){ return QUnit.jsDump.parse(data)}, //wrapper needed for proper 'this' for jsDump obj
     Class = jassino.Class,
     Trait = jassino.Trait;
 
@@ -182,12 +193,22 @@ module("Basic Class operations", {
     }
 });
 
-test("Members setup", 1, function() {
+test("Object members should not become class members", 2, function() {
     Class(ns, 'T', {
         a: 5,
         f: function(){return this.a}
     })
-	equal(ns.T.f(), 5, 'member call')
+	raises(function(){ns.T.f()})
+    strictEqual(ns.T.a, undefined)
+});
+
+test("Simple instantiation", 1, function() {
+    Class(ns, 'T', {
+        a: 5,
+        f: function(){return this.a}
+    })
+	var t = new ns.T()
+    equal(t.f(), 5, 'member call')
 });
 
 test("Constructor manual setup", 1, function() {

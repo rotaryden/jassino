@@ -6,6 +6,7 @@ var jassino = {
 
     DuplicationError: function(d){this.d=d;},
     InvalidNamespaceError: function(d){this.d = d;},
+    InvalidArgumentsError: function(d){this.d = d;},
 
     extend: function(destination, source, override) {
         if (!destination || !source) return destination;
@@ -17,16 +18,11 @@ var jassino = {
         return destination;
     },
 
-    foreach: function(obj, func){
-        for (var pname in obj)
-            if (obj.hasOwnProperty(pname)){
-                func(pname);
-            }
-    },
-
     slice: function(arr, begin, end){
         return Array.prototype.slice.call(arr, begin, end)
-    }
+    },
+
+    is_array: function(a){return a['slice'] !== undefined;}
 };
 
 (function() {
@@ -45,13 +41,34 @@ var jassino = {
             ns = args[0]
         }
         var len = args.length,
-            h = args[shift + 1]
-        return {
-            body: args[len - 1],
-            heritage: h instanceof Array? h : [h], //Super class or Super traits set
-            ns: ns,
-            name: args[shift]
-        }
+            data = {
+                body: args[len - 1],
+                ns: ns,
+                name: args[shift]
+            }
+
+        var a = args[shift + 1], b = args[shift + 2]
+
+        if (shift + 2 < len - 1){ //(..., SuperClass, [Traits...], body)
+            if (typeof a == 'function' && jassino.is_array(b) ) {
+                data.sclass = a
+                data.straits = b
+            }else{
+                throw new jassino.InvalidArgumentsError(data)
+            }
+        }else if(shift + 1 < len - 1){ //(...,SuperClass||[Traits], body
+            if (typeof a == 'function') {
+                data.sclass = a
+            }else if (jassino.is_array(a)){
+                data.straits = a
+            //single trait case - IT IS IMPORTANT TO HAVE 'object' test AFTER is_array() !!!
+            }else if (typeof a == 'object') {
+                data.straits = [a]
+            }else{
+                throw new jassino.InvalidArgumentsError(data)
+            }
+        } //else only body specified
+        return data
     }
 
     function _nsadd(data, obj){
@@ -69,7 +86,7 @@ var jassino = {
 
         _nsadd(data, trait)
 
-        if (data.heritage) _mix(trait, data.heritage); //Super Traits
+        if (data.straits) _mix(trait, data.straits); //Super Traits
         _extend(trait, data.body, true)
         return trait;
     }
@@ -78,7 +95,7 @@ var jassino = {
     jassino.Class = function() {
         var data = _process_args(arguments),
             body = data.body,
-            SuperClass = data.heritage ? data.heritage[0] : null,
+            SuperClass = data.sclass,
             SARG = body[jassino._SUP]; //super arguments
         delete body[jassino._SUP]
 
@@ -111,18 +128,17 @@ var jassino = {
             _extend(klass, SuperClass, false);   //Class Members inherited from SuperClass
         }
 
-        if (body.MIX) {
-            _mix(klass.prototype, body.MIX)
-            delete body.MIX
+        if (data.straits) {
+            _mix(klass.prototype, data.straits)
+        }
+
+        if (body.CLS) {                      //Class Members specified in body
+            _extend(klass, body.CLS, true);
+            delete body.CLS;
         }
 
         _extend(klass.prototype, body, true) //this should be LAST write into prototype
                                              //to provide right override order !!!
-        
-        if (body.CLS) {                     //Class Members specified in body
-            _extend(klass, body.CLS, true);
-            delete body.CLS;
-        }
 
         return klass;
     }
