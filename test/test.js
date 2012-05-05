@@ -10,10 +10,17 @@ function dump(data, typ) {
 	});
 }
 
-var ns = {},
-    Class = jassino.Class,
-    Trait = jassino.Trait;
-
+var Class = jassino.Class,
+    Trait = jassino.Trait,
+    ns = jassino.NS,
+    default_up_down = {
+        setup: function() {
+            ns = jassino.NS = {}
+        },
+        teardown: function() {
+            ns = jassino.NS = {}
+        }
+    }
 //========================================================================================================================
 module("Basic definitions")
 
@@ -26,34 +33,29 @@ test("Class and Trait definitions, typeof Class/Trait === function",
 );
 
 //========================================================================================================================
-module("Class/Trait creation, NameSpaces --", {
-    setup: function() {
-        ns = {}
-        jassino.NS = {}
-    },
-    teardown: function() {
-    }
-});
+module("Class/Trait creation, NameSpaces --", default_up_down);
 
 test("Class/Trait creation - default namespace", 2, function() {
     var A = Class('A', {})
     var T = Trait('T', {})
-    strictEqual(A, jassino.NS.A, 'for Class')
-    strictEqual(T, jassino.NS.T, 'for Trait')
-});
-
-test("Class/Trait creation -> ns(ns)", 2, function() {
-    var A = Class(ns, 'A', {})
-    var T = Trait(ns, 'T', {})
     strictEqual(A, ns.A, 'for Class')
     strictEqual(T, ns.T, 'for Trait')
 });
 
+test("Class/Trait creation -> ns(ns)", 2, function() {
+    var n = {}
+    var A = Class(n, 'A', {})
+    var T = Trait(n, 'T', {})
+    strictEqual(A, n.A, 'for Class')
+    strictEqual(T, n.T, 'for Trait')
+});
+
 test("Duplicate Class/Trait creation)", 2, function() {
-    Class(ns, 'A', {})
-    raises(function(){Class(ns, 'A', {})}, jassino.DuplicationError, 'for Class: ' + dump(ns))
-    Trait(ns, 'T', {})
-    raises(function(){Trait(ns, 'T', {})}, jassino.DuplicationError, 'for Trait')
+    var n = {}
+    Class(n, 'A', {})
+    raises(function(){Class(n, 'A', {})}, jassino.DuplicationError, 'for Class: ' + dump(n))
+    Trait(n, 'T', {})
+    raises(function(){Trait(n, 'T', {})}, jassino.DuplicationError, 'for Trait')
 });
 
 test("Duplicate Class/Trait creation - default NS)", 2, function() {
@@ -63,22 +65,19 @@ test("Duplicate Class/Trait creation - default NS)", 2, function() {
     raises(function(){Trait('T', {})}, jassino.DuplicationError, 'for Trait')
 });
 
-test("Invalid namespace object test on Class/Trait creation)", 2, function() {
-    raises(function(){Class(null, 'A', {})}, jassino.InvalidNamespaceError, 'for Class')
-    raises(function(){Trait(null, 'T', {})}, jassino.InvalidNamespaceError, 'for Trait')
+test("Invalid namespace object test on Class/Trait creation)", 5, function() {
+    raises(function(){Class("blabla")}, jassino.InvalidArgumentsError, "arguments.length < 2 for Class")
+    raises(function(){Class(null, 'A', {})}, jassino.InvalidArgumentsError, 'null ns for Class')
+    raises(function(){Trait(null, 'T', {})}, jassino.InvalidArgumentsError, 'null ns for Trait')
+    raises(function(){Class("", {})}, jassino.InvalidArgumentsError, 'empty name for Class')
+    raises(function(){Trait("", {})}, jassino.InvalidArgumentsError, 'empty for Trait')
 });
 
 //========================================================================================================================
-module("Basic Trait operations", {
-    setup: function() {
-        ns = {}
-    },
-    teardown: function() {
-    }
-});
+module("Basic Trait operations", default_up_down);
 
 test("Members setup", 1, function() {
-    Trait(ns, 'T', {
+    Trait('T', {
         a: 5,
         f: function(){return this.a}
     })
@@ -86,24 +85,18 @@ test("Members setup", 1, function() {
 });
 
 //========================================================================================================================
-module("Trait inheritance", {
-    setup: function() {
-        ns = {}
-    },
-    teardown: function() {
-        ns = {}
-    }
-});
+module("Trait inheritance", default_up_down);
 
 
 test("Single inheritance", 15, function() {
-    Trait(ns, 'A', {
+    Trait('A', {
         a: 'a',
         ov: 'ov',
         af: function(){return [this.a, this.ov]},
         ovf: function(){ return [this.a, this.ov];}
     })
-    Trait(ns, 'T', ns.A, {
+    
+    Trait('T', [ns.A], {
         t: 'T',
         ov: 'T_ov',
         tf: function(){return [this.t, this.ov, this.a];},
@@ -133,23 +126,23 @@ test("Single inheritance", 15, function() {
 
 
 test("Multiple inheritance", 6, function() {
-    Trait(ns, 'A', {
+    Trait('A', {
         a: 'a',
         ovf: function(){return 'A'},
         anc_ovf: function(){ return 'anc_A';},
         anc_ovf2: function(){ return 'anc_A_2';}
     })
-    Trait(ns, 'B', {
+    Trait('B', {
         b: 'b',
         ovf: function(){return 'B'},
         anc_ovf: function(){ return 'anc_B';},
         anc_ovf2: function(){ return 'anc_B_2';}
     })
-    Trait(ns, 'C', {
+    Trait('C', {
         c: 'c',
         anc_ovf: function(){ return 'anc_C';}
     })
-    Trait(ns, 'T', [ns.A, ns.B, ns.C], {
+    Trait('T', [ns.A, ns.B, ns.C], {
         ovf: function(){ return 'T';}
     })
     equal(ns.T.a, 'a', 'inherited variable')
@@ -162,17 +155,17 @@ test("Multiple inheritance", 6, function() {
 });
 //========================================================================================================================
 test("Inheritance transitive law, inheritance no-array syntax", 4, function() {
-    Trait(ns, 'A', {
+    Trait('A', {
         a: 'a',
         ovf: function(){return 'A'},
         anc_ovf: function(){ return 'anc_A';}
     })
-    Trait(ns, 'B', ns.A, {
+    Trait('B', [ns.A], {
         b: 'b',
         ovf: function(){return 'B'},
         anc_ovf: function(){ return 'anc_B';}
     })
-    Trait(ns, 'T', ns.B, {
+    Trait('T', [ns.B], {
         ovf: function(){ return 'T';}
     })
     equal(ns.T.a, 'a', 'inherited variable')
@@ -184,39 +177,35 @@ test("Inheritance transitive law, inheritance no-array syntax", 4, function() {
 //========================================================================================================================
 //================================================== Classes =============================================================
 //========================================================================================================================
-module("Basic Class operations", {
-    setup: function() {
-        ns = {}
-    },
-    teardown: function() {
-        ns = {}
-    }
-});
+module("Basic Class operations", default_up_down);
 
 test("Object members should not become class members", 2, function() {
-    Class(ns, 'T', {
+    Class('T', {
         a: 5,
         f: function(){return this.a}
     })
+    
 	raises(function(){ns.T.f()})
     strictEqual(ns.T.a, undefined)
 });
 
 test("Simple instantiation", 1, function() {
-    Class(ns, 'T', {
+    Class('T', {
         a: 5,
         f: function(){return this.a}
     })
 	var t = new ns.T()
+    
     equal(t.f(), 5, 'member call')
 });
 
 test("Constructor manual setup", 1, function() {
-    Class(ns, 'T', {
+    Class('T', {
         _: function(){},
         a: 5,
         f: function(){return this.a}
     })
+    
 	equal(ns.T.f(), 5, 'member call')
 });
 

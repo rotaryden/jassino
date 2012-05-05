@@ -4,17 +4,14 @@ var jassino = (function() {
         _SUP : '$',
         _CTOR: '_',
 
-        DuplicationError: _errf,
-        InvalidNamespaceError: _errf,
-        InvalidArgumentsError: _errf,
+        DuplicationError: function(d){this.d=d;},
+        InvalidArgumentsError: function(d){this.d=d;},
 
         extend: extend,
         is_array: is_array
     }
 
     //==============================================================================================
-    function _errf(d){this.d=d;}
-
     function is_array(a){return a.slice !== undefined;}
 
     function extend(destination, source, override) {
@@ -34,24 +31,42 @@ var jassino = (function() {
     //---------------------------------------------------------------------------------------------
     function _process_args(args){
         /*
-        * spec:
-        * (<namespace>, name, <SuperClass>, <[Traits...]>, body), <> - for optionals
+        * SPEC:
+        * (<namespace>, name, 
+        *  < SuperClass | [Traits...] | SuperClass, [Traits...] >,
+         * body), 
+         * <> - for optionals
+         * traits must be always wrapped into array[] - 
+         * it makes clear whether single trait or super class is in declaration,
+         * plus removes extra checks in parameters parser
          */
-        var name_pos = 0
+        var ns,
+            AE = J.InvalidArgumentsError,
+            name_pos = 0
+        
+        if (args.length < 2) throw new AE(args)
         
         //if first parameter an object => it should be namespace
-        var ns = typeof args[0] === 'object' ? (name_pos++, args[0]) : J.NS
+        if (args[0] !== null && typeof args[0] === 'object'){ //null is object
+            name_pos++
+            ns = args[0]
+        }else if(typeof args[0] === 'string'){
+            ns = J.NS
+        }else{
+            throw new AE(args)
+        }
         
         var len = args.length,
             data = {
                 body: args[len - 1], //last parameter - always class/trait definition body object
                 ns: ns,
                 name: args[name_pos]
-            }
+            },
+            //number of parameters between name and body
+            var_par_num = len - (name_pos + 1) - 1
 
-        //number of parameters between name and body
-        var var_par_num = len - (name_pos + 1) - 1
-        
+        if (! data.name) throw new AE(data)
+                
         if (var_par_num > 0){
             var par_after_name = args[name_pos + 1]
 
@@ -61,18 +76,15 @@ var jassino = (function() {
                     data.sclass = par_after_name
                     data.straits = traits
                 }else{
-                    throw new J.InvalidArgumentsError(data)
+                    throw new AE(data)
                 }
             }else{ //super class OR traits
                 if (typeof par_after_name === 'function') {
                     data.sclass = par_after_name
                 }else if (is_array(par_after_name)){
                     data.straits = par_after_name
-                //single trait case - IT IS IMPORTANT TO HAVE 'object' test AFTER is_array() !!!
-                }else if (typeof par_after_name === 'object') {
-                    data.straits = [par_after_name]
                 }else{
-                    throw new J.InvalidArgumentsError(data)
+                    throw new AE(data)
                 }
             } //else only body specified
         }
@@ -80,8 +92,6 @@ var jassino = (function() {
     }
 
     function _nsadd(data, obj){
-        if (typeof data.ns !== "object")
-            throw new J.InvalidNamespaceError(data.ns)
         if (data.ns[data.name] !== undefined)
             throw new J.DuplicationError(data)
         data.ns[data.name] = obj
@@ -119,8 +129,9 @@ var jassino = (function() {
         _nsadd(data, klass)
 
         if (SuperClass) {
+            //clone SuperClass chain so protecting SuperClass itself from overriding
             var SuperClassEmpty = function(){};
-            SuperClassEmpty.prototype = SuperClass.prototype; //protect SuperClass from modification
+            SuperClassEmpty.prototype = SuperClass.prototype;
             klass.prototype = new SuperClassEmpty();
 
             klass.prototype.constructor = klass;
