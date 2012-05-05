@@ -1,11 +1,14 @@
 var jassino = (function() {
     var J = {
-        NS: {}, //default namespace
+        //--------------------- you may change these parameters to your own symbols ----------------------
         _SUP : '$',
         _CTOR: '_',
+        _CLS: 'CLS',
+        //------------------------------------------------------------------------------------------------
+        NS: {}, //default namespace
 
         DuplicationError: function(d){this.d=d;},
-        InvalidArgumentsError: function(d){this.d=d;},
+        ArgumentsError: function(d){this.d=d;},
 
         extend: extend,
         is_array: is_array
@@ -41,7 +44,7 @@ var jassino = (function() {
          * plus removes extra checks in parameters parser
          */
         var ns,
-            AE = J.InvalidArgumentsError,
+            AE = J.ArgumentsError,
             name_pos = 0
         
         if (args.length < 2) throw new AE(args)
@@ -110,24 +113,62 @@ var jassino = (function() {
     }
 
     //===================================================================================================================
+    /*
+    * SPEC:
+    * Class( "Kls", SuperCls, [Trait1, Trait2], {
+    *    _: function(){ do_custom_construction();},
+    *    $: [arg1, arg2],
+    *    CLS:{
+    *    class_var:1, 
+    *    class_method: function(){}
+    *    },
+    *    instance_var: 5,
+    *    instance_method: function(){}
+    * }
+     */
     J.Class = function() {
         var data = _process_args(arguments),
             body = data.body,
             SuperClass = data.sclass,
-            SARG = body[J._SUP]; //super arguments
+            SARG = body[J._SUP]; //user's custom super arguments (optional)
         delete body[J._SUP]
 
-        var saved_ctor = body[J._CTOR]
+        var saved_ctor = body[J._CTOR], //user's custom constructor (optional)
+            klass;
         delete body[J._CTOR]
-        var klass = function() {
-            if (SuperClass && SARG)
-                SuperClass.apply(this, SARG)
-            if (saved_ctor)
-                saved_ctor.apply(this, arguments)
-        }
 
+        //------------------------------------- creating root constructor -------------------------------------
+        if (SuperClass && SARG){ //functions population for speed
+            if (saved_ctor) klass = function(){
+                SuperClass.apply(this, SARG)
+                saved_ctor.apply(this, arguments)
+            }
+            //all functions in wrappers to prevent hard find overriding and collisions
+            else klass = function(){
+                SuperClass.apply(this, SARG)
+            }
+        }else{
+            if (saved_ctor) klass = function(){saved_ctor.apply(this, arguments)}
+            else klass = function(){}
+        }
+        
         _nsadd(data, klass)
 
+        //------------------------------ class self-referemce ----------------------------------------------
+        //class methods will be able to 
+        //reference the class (constructor function) as this.CLS, this - constructor function object,
+        //which contains class members exactly
+        klass[J._CLS] = klass
+
+        //--------------------------- extending class with class/static members -------------------------------------
+        //add "class" members from _CLS variable to constructor(class) object, 
+        // so accessing like class.static_member()
+        if (body[J._CLS]) {                      //Class Members specified in body
+            extend(klass, body[J._CLS], true);
+            delete body[J._CLS];
+        }
+
+        //------------------------------------- super class handling -----------------------------------------------
         if (SuperClass) {
             //clone SuperClass chain so protecting SuperClass itself from overriding
             var SuperClassEmpty = function(){};
@@ -135,28 +176,53 @@ var jassino = (function() {
             klass.prototype = new SuperClassEmpty();
 
             klass.prototype.constructor = klass;
+            //----------------------- class-level super reference -------------
             klass[J._SUP] = SuperClass;
             
             //explicit super call - create only if wasn't called automatically upon super arguments from body
-            if ( ! SARG)
+            if ( ! SARG){
+                //----------------- instance-level super reference -> super constructor -------------
+                //this.$Kls(args), this - instantiated object
+                //WARNING!!! name $Kls rather then 'super' or so is essential, because
+                //general names like super work incorrectly in prototype chain with several levels of inheritance
+                //we need to point exactly to what class super should belong
+                //example (from http://myjs.fr/my-class/):
+                //function Person(name) {
+                //    this.name = name;
+                //};
+                //function Dreamer(name, dream) {
+                //    //accessing superclass with this.superclass: DANGEROUS
+                //    this.superclass.constructor.call(this, name);
+                //    this.dream = dream;
+                //}
+                //Dreamer.prototype.superclass = Person.prototype;
+                //function Nightmarer(name, dream) {
+                //    this.superclass.constructor.call(this, name, dream); //infinite loop
+                //    this.field = "will never be accessed";
+                //}
+                //Nightmarer.prototype.superclass = Dreamer.prototype;
+                //new Nightmarer("name", "dream")
+                //RangeError: Maximum call stack size exceeded
+
                 klass.prototype[J._SUP + data.name] = function() {
                     SuperClass.apply(this, arguments)
                 }
-
-            extend(klass, SuperClass, false);   //Class Members inherited from SuperClass
+            }
+            //Class Members inherited from SuperClass
+            extend(klass, SuperClass, false);   
         }
 
+        //--------------------------- traits handling -----------------------------------------------
+        //mix all members from traits
         if (data.straits) {
             _mix(klass.prototype, data.straits)
         }
 
-        if (body.CLS) {                      //Class Members specified in body
-            extend(klass, body.CLS, true);
-            delete body.CLS;
-        }
+        //--------------------------- extending prototype with instance members --------------------------------------
+        //this call goes last to provide correct overriding order: if any trait has the same method, it will be hidden
+        //class methods do not cludge here as resist on constructor object rather then instance object
+        extend(klass.prototype, body, true) 
 
-        extend(klass.prototype, body, true) //this should be LAST write into prototype
-                                             //to provide right override order !!!
         return klass;
     }
 
