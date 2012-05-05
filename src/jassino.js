@@ -1,14 +1,23 @@
-var jassino = {
-    NS: {}, //default namespace
-    _SUP : '$',
-    _CTOR: '_',
+var jassino = (function() {
+    var J = {
+        NS: {}, //default namespace
+        _SUP : '$',
+        _CTOR: '_',
 
+        DuplicationError: _errf,
+        InvalidNamespaceError: _errf,
+        InvalidArgumentsError: _errf,
 
-    DuplicationError: function(d){this.d=d;},
-    InvalidNamespaceError: function(d){this.d = d;},
-    InvalidArgumentsError: function(d){this.d = d;},
+        extend: extend,
+        is_array: is_array
+    }
 
-    extend: function(destination, source, override) {
+    //==============================================================================================
+    function _errf(d){this.d=d;}
+
+    function is_array(a){return a.slice !== undefined;}
+
+    function extend(destination, source, override) {
         if (!destination || !source) return destination;
         for (var field in source)
             if ((destination[field] !== source[field]) &&
@@ -16,91 +25,90 @@ var jassino = {
                 (override === true || ! destination.hasOwnProperty(field)))
                 destination[field] = source[field];
         return destination;
-    },
-
-    slice: function(arr, begin, end){
-        return Array.prototype.slice.call(arr, begin, end)
-    },
-
-    is_array: function(a){return a['slice'] !== undefined;}
-};
-
-(function() {
-    var _extend = jassino.extend;
+    }
 
     function _mix(base, mixins){
         for (var i = 0; i < mixins.length; i++)
-            _extend(base, mixins[i], true); //overriding previous members
+            extend(base, mixins[i], true); //overriding previous members
     }
-
+    //---------------------------------------------------------------------------------------------
     function _process_args(args){
-        var shift = 0,
-            ns = jassino.NS;
-        if (typeof args[0] !== 'string'){
-            shift = 1
-            ns = args[0]
-        }
+        /*
+        * spec:
+        * (<namespace>, name, <SuperClass>, <[Traits...]>, body), <> - for optionals
+         */
+        var name_pos = 0
+        
+        //if first parameter an object => it should be namespace
+        var ns = typeof args[0] === 'object' ? (name_pos++, args[0]) : J.NS
+        
         var len = args.length,
             data = {
-                body: args[len - 1],
+                body: args[len - 1], //last parameter - always class/trait definition body object
                 ns: ns,
-                name: args[shift]
+                name: args[name_pos]
             }
 
-        var a = args[shift + 1], b = args[shift + 2]
+        //number of parameters between name and body
+        var var_par_num = len - (name_pos + 1) - 1
+        
+        if (var_par_num > 0){
+            var par_after_name = args[name_pos + 1]
 
-        if (shift + 2 < len - 1){ //(..., SuperClass, [Traits...], body)
-            if (typeof a == 'function' && jassino.is_array(b) ) {
-                data.sclass = a
-                data.straits = b
-            }else{
-                throw new jassino.InvalidArgumentsError(data)
-            }
-        }else if(shift + 1 < len - 1){ //(...,SuperClass||[Traits], body
-            if (typeof a == 'function') {
-                data.sclass = a
-            }else if (jassino.is_array(a)){
-                data.straits = a
-            //single trait case - IT IS IMPORTANT TO HAVE 'object' test AFTER is_array() !!!
-            }else if (typeof a == 'object') {
-                data.straits = [a]
-            }else{
-                throw new jassino.InvalidArgumentsError(data)
-            }
-        } //else only body specified
+            if (var_par_num == 2){ //superclass and traits
+                var traits = args[name_pos + 2]
+                if (typeof par_after_name == 'function' && is_array(traits) ) {
+                    data.sclass = par_after_name
+                    data.straits = traits
+                }else{
+                    throw new J.InvalidArgumentsError(data)
+                }
+            }else{ //super class OR traits
+                if (typeof par_after_name === 'function') {
+                    data.sclass = par_after_name
+                }else if (is_array(par_after_name)){
+                    data.straits = par_after_name
+                //single trait case - IT IS IMPORTANT TO HAVE 'object' test AFTER is_array() !!!
+                }else if (typeof par_after_name === 'object') {
+                    data.straits = [par_after_name]
+                }else{
+                    throw new J.InvalidArgumentsError(data)
+                }
+            } //else only body specified
+        }
         return data
     }
 
     function _nsadd(data, obj){
-        if (! data.ns)
-            throw new jassino.InvalidNamespaceError(data.ns)
-        if (data.ns[data.name] != undefined)
-            throw new jassino.DuplicationError(data)
+        if (typeof data.ns !== "object")
+            throw new J.InvalidNamespaceError(data.ns)
+        if (data.ns[data.name] !== undefined)
+            throw new J.DuplicationError(data)
         data.ns[data.name] = obj
     }
 
     //===================================================================================================================
-    jassino.Trait = function(){
+    J.Trait = function(){
         var data = _process_args(arguments),
             trait = {};
 
         _nsadd(data, trait)
 
         if (data.straits) _mix(trait, data.straits); //Super Traits
-        _extend(trait, data.body, true)
+        extend(trait, data.body, true)
         return trait;
     }
 
     //===================================================================================================================
-    jassino.Class = function() {
+    J.Class = function() {
         var data = _process_args(arguments),
             body = data.body,
             SuperClass = data.sclass,
-            SARG = body[jassino._SUP]; //super arguments
-        delete body[jassino._SUP]
+            SARG = body[J._SUP]; //super arguments
+        delete body[J._SUP]
 
-        var saved_ctor = body[jassino._CTOR]
-        delete body[jassino._CTOR]
+        var saved_ctor = body[J._CTOR]
+        delete body[J._CTOR]
         var klass = function() {
             if (SuperClass && SARG)
                 SuperClass.apply(this, SARG)
@@ -111,21 +119,20 @@ var jassino = {
         _nsadd(data, klass)
 
         if (SuperClass) {
-
             var SuperClassEmpty = function(){};
             SuperClassEmpty.prototype = SuperClass.prototype; //protect SuperClass from modification
             klass.prototype = new SuperClassEmpty();
 
             klass.prototype.constructor = klass;
-            klass[jassino._SUP] = SuperClass;
+            klass[J._SUP] = SuperClass;
             
             //explicit super call - create only if wasn't called automatically upon super arguments from body
             if ( ! SARG)
-                klass.prototype[jassino._SUP + data.name] = function() {
+                klass.prototype[J._SUP + data.name] = function() {
                     SuperClass.apply(this, arguments)
                 }
 
-            _extend(klass, SuperClass, false);   //Class Members inherited from SuperClass
+            extend(klass, SuperClass, false);   //Class Members inherited from SuperClass
         }
 
         if (data.straits) {
@@ -133,14 +140,14 @@ var jassino = {
         }
 
         if (body.CLS) {                      //Class Members specified in body
-            _extend(klass, body.CLS, true);
+            extend(klass, body.CLS, true);
             delete body.CLS;
         }
 
-        _extend(klass.prototype, body, true) //this should be LAST write into prototype
+        extend(klass.prototype, body, true) //this should be LAST write into prototype
                                              //to provide right override order !!!
-
         return klass;
     }
 
+    return J
 })();
