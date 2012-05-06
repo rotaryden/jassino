@@ -327,6 +327,32 @@ test("Inheritance from usual Prototype-Based pseudo class)", 12, function() {
     ste(t.ovf()[2], 'a', 'Overridden A.ovf() -> T.ovf() - output should be as in T.tf() 3')
 })
 
+test("Inheritance transitive law", 4, function() {
+    Class('A', {
+        a: 'a',
+        ovf: function(){return 'A'},
+        anc_ovf: function(){ return 'anc_A';}
+    })
+    
+    Class('B', ns.A, {
+        b: 'b',
+        ovf: function(){return 'B'},
+        anc_ovf: function(){ return 'anc_B';}
+    })
+    Class('T', ns.B, {
+        ovf: function(){ return 'T';}
+    })
+    
+    var t = new ns.T()
+    
+    eq(t.a, 'a', 'inherited variable')
+    eq(t.b, 'b', 'inherited variable 2')
+
+    eq(t.ovf(), 'T', 'Overriden ovf() -> T.ovf()')
+    eq(t.anc_ovf(), 'anc_B', 'Inheritance override stack: last override happened in B')
+});
+
+
 test("Rewritten example from my-class (http://myjs.fr/my-class/) - NO INFINITE RECURSION!", 1, function() {
     var N = jassino.NS
     

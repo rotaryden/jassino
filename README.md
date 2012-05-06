@@ -1,5 +1,4 @@
-# Jassino
-
+# Jassino ![Alt text](http://bost.ocks.org/mike/uberdata.png)
 Very light, fast and well unit-tested object orientation in Javascript
 
 Gives the nearly prototype-native performance on instantiation.
@@ -10,10 +9,11 @@ Gives the nearly prototype-native performance on instantiation.
 * Compatible with prototype-bases pseudo classes - you may inherit Jassino class from native one
 * Very simple and handy Traits implementation
 * Single inheritance from base class
-* Multiple inheritance from Traits
-* Calls to super class constructor and members is done properly in multi-level inheritance, no dead loops :)
+* Multiple inheritance from __Traits__
+* Calls to __super class constructor__ and members is done properly in multi-level inheritance, no dead loops :)
 * Any level of inheritance allowed (up to your stack size :), tested up to 2000 ancestors
-
+* will work on oldest browsers, no dependencies
+* less then 2Kb minified !
 
 [Detailed capabilities of the library may be seen from unit-test examples](https://github.com/altitudebreath/jassino/blob/master/test/test.js)  
 
