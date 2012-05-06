@@ -1,10 +1,34 @@
+/********************************************************************************************************************
+*******************                                   Jassino                                 ***********************
+*******************      Very light, fast and well tested object orientation in Javascript    ***********************
+*********************************************************************************************************************
+*
+*   Copyright (c)  Denis Volokhovski, 2012
+*   Copyright (c) 2011 Jie Meng-Gerard, ancestor code from https://github.com/jiem/my-class
+*/
+    
 var jassino = (function() {
+    /*
+    * Terminology:
+    * class - constructor function F
+    * instance/object (of class) - new F() in rough view
+    * Super Class for F - constructor function G such that in rough F.prototype = new G()
+    * super constructor - constructor function G used as functionS
+    * body - definition body object provided for Class or Trait
+    * super object - Super class prototype
+    */
+    //--------------------- you may change these parameters to your own symbols ----------------------
+    var _CONSTRUCTOR       = '_',       //constructor function in body
+        _CLASS_MEMBERS     = '_C',      //class (static) members definition in body
+        _CLASS             = '_C',      //class self-reference on the class itself
+        _CLASS_NAME        = '_N',      //class name on the class itself
+
+        _SUPER_OBJ_SUFFIX  = '$',       //super object suffix
+        _SUPER_CLASS       = '$C',      //reference to SuperClass in class 
+        _SUPER_CLASS_NAME  = '$N'       // reference to SuperClass name in class -OR- body (in case of inheriting from usual function) 
+
+    //------------------------------------------------------------------------------------------------
     var J = {
-        //--------------------- you may change these parameters to your own symbols ----------------------
-        _SUP : '$',
-        _CTOR: '_',
-        _CLS: 'CLS',
-        //------------------------------------------------------------------------------------------------
         NS: {}, //default namespace
 
         DuplicationError: function(d){this.d=d;},
@@ -117,7 +141,6 @@ var jassino = (function() {
     * SPEC:
     * Class( "Kls", SuperCls, [Trait1, Trait2], {
     *    _: function(){ do_custom_construction();},
-    *    $: [arg1, arg2],
     *    CLS:{
     *    class_var:1, 
     *    class_method: function(){}
@@ -129,86 +152,82 @@ var jassino = (function() {
     J.Class = function() {
         var data = _process_args(arguments),
             body = data.body,
-            SuperClass = data.sclass,
-            SARG = body[J._SUP]; //user's custom super arguments (optional)
-        delete body[J._SUP]
+            SuperClass = data.sclass
 
-        var saved_ctor = body[J._CTOR], //user's custom constructor (optional)
+        var saved_ctor = body[_CONSTRUCTOR], //user's custom constructor (optional)
             klass;
-        delete body[J._CTOR]
+        delete body[_CONSTRUCTOR]
 
         //------------------------------------- creating root constructor -------------------------------------
-        if (SuperClass && SARG){ //functions population for speed
-            if (saved_ctor) klass = function(){
-                SuperClass.apply(this, SARG)
-                saved_ctor.apply(this, arguments)
-            }
-            //all functions in wrappers to prevent hard find overriding and collisions
-            else klass = function(){
-                SuperClass.apply(this, SARG)
-            }
-        }else{
-            if (saved_ctor) klass = function(){saved_ctor.apply(this, arguments)}
-            else klass = function(){}
-        }
+        if (saved_ctor) klass = function(){saved_ctor.apply(this, arguments)}
+        else klass = function(){}
         
         _nsadd(data, klass)
 
-        //------------------------------ class self-referemce ----------------------------------------------
+        //------------------------------ class self-reference and name ----------------------------------------------
         //class methods will be able to 
         //reference the class (constructor function) as this.CLS, this - constructor function object,
         //which contains class members exactly
-        klass[J._CLS] = klass
+        klass[_CLASS] = klass
+        klass[_CLASS_NAME] = data.name
 
         //--------------------------- extending class with class/static members -------------------------------------
         //add "class" members from _CLS variable to constructor(class) object, 
         // so accessing like class.static_member()
-        if (body[J._CLS]) {                      //Class Members specified in body
-            extend(klass, body[J._CLS], true);
-            delete body[J._CLS];
+        if (body[_CLASS_MEMBERS]) {                      //Class Members specified in body
+            extend(klass, body[_CLASS_MEMBERS], true);
+            delete body[_CLASS_MEMBERS];
         }
 
         //------------------------------------- super class handling -----------------------------------------------
         if (SuperClass) {
-            //clone SuperClass chain so protecting SuperClass itself from overriding
+            var SNAME = body[_SUPER_CLASS_NAME] || SuperClass[_CLASS_NAME]; //superclass name, body variant works for non-jassino superclasses
+            delete body[_SUPER_CLASS_NAME]
+
+            //clone SuperClass prototype chain so protecting SuperClass instance object itself 
+            // from overriding in childs => this also guarantees of working calls
+            //for ancestor methods and data via this.Ancestor$, see below
             var SuperClassEmpty = function(){};
             SuperClassEmpty.prototype = SuperClass.prototype;
             klass.prototype = new SuperClassEmpty();
 
             klass.prototype.constructor = klass;
-            //----------------------- class-level super reference -------------
-            klass[J._SUP] = SuperClass;
             
-            //explicit super call - create only if wasn't called automatically upon super arguments from body
-            if ( ! SARG){
-                //----------------- instance-level super reference -> super constructor -------------
-                //this.$Kls(args), this - instantiated object
-                //WARNING!!! name $Kls rather then 'super' or so is essential, because
-                //general names like super work incorrectly in prototype chain with several levels of inheritance
-                //we need to point exactly to what class super should belong
-                //example (from http://myjs.fr/my-class/):
-                //function Person(name) {
-                //    this.name = name;
-                //};
-                //function Dreamer(name, dream) {
-                //    //accessing superclass with this.superclass: DANGEROUS
-                //    this.superclass.constructor.call(this, name);
-                //    this.dream = dream;
-                //}
-                //Dreamer.prototype.superclass = Person.prototype;
-                //function Nightmarer(name, dream) {
-                //    this.superclass.constructor.call(this, name, dream); //infinite loop
-                //    this.field = "will never be accessed";
-                //}
-                //Nightmarer.prototype.superclass = Dreamer.prototype;
-                //new Nightmarer("name", "dream")
-                //RangeError: Maximum call stack size exceeded
+            //----------------------- class-level super reference -------------
+            klass[_SUPER_CLASS] = SuperClass;
+            klass[_SUPER_CLASS_NAME] = SNAME
 
-                klass.prototype[J._SUP + data.name] = function() {
-                    SuperClass.apply(this, arguments)
-                }
+            //----------------------- this.Super$.blabla(): reference to super object ------------- 
+            klass.prototype[SNAME + _SUPER_OBJ_SUFFIX] = SuperClass.prototype
+
+            //----------------- instance-level super reference -> super constructor -------------
+            //this.Kls(args), this points to instance
+            //WARNING!!! name $Kls rather then 'super' or so is essential, because
+            //general names like super work incorrectly in prototype chain with several levels of inheritance
+            //we need to point exactly to what class super should belong
+            //example (from http://myjs.fr/my-class/):
+            //function Person(name) {
+            //    this.name = name;
+            //};
+            //function Dreamer(name, dream) {
+            //    //accessing superclass with this.superclass: DANGEROUS
+            //    this.superclass.constructor.call(this, name);
+            //    this.dream = dream;
+            //}
+            //Dreamer.prototype.superclass = Person.prototype;
+            //function Nightmarer(name, dream) {
+            //    this.superclass.constructor.call(this, name, dream); //infinite loop
+            //    this.field = "will never be accessed";
+            //}
+            //Nightmarer.prototype.superclass = Dreamer.prototype;
+            //new Nightmarer("name", "dream")
+            //RangeError: Maximum call stack size exceeded
+
+            klass.prototype[SNAME] = function() {
+                SuperClass.apply(this, arguments)
             }
-            //Class Members inherited from SuperClass
+
+            //-------------- Class Members inherited from SuperClass --------------------------------------
             extend(klass, SuperClass, false);   
         }
 
@@ -220,7 +239,7 @@ var jassino = (function() {
 
         //--------------------------- extending prototype with instance members --------------------------------------
         //this call goes last to provide correct overriding order: if any trait has the same method, it will be hidden
-        //class methods do not cludge here as resist on constructor object rather then instance object
+        //class methods do not matter here as resist on constructor object rather then instance object
         extend(klass.prototype, body, true) 
 
         return klass;

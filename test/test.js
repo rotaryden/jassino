@@ -180,7 +180,8 @@ test("Inheritance transitive law, inheritance no-array syntax", 4, function() {
 //========================================================================================================================
 //================================================== Classes =============================================================
 //========================================================================================================================
-module("Basic Class operations", default_up_down);
+//========================================================================================================================
+module("Basic Class definitions and operations", default_up_down);
 
 test("Object members should not become class members", 2, function() {
     Class('T', {
@@ -216,130 +217,152 @@ test("Constructor manual setup", 1, function() {
 });
 
 //========================================================================================================================
+module("Classes mixed-in with Traits", default_up_down);
+
+test("Single mixin", 1, function() {
+    Trait('T1', {t1: "a"})
+
+    Class('C1', [ns.T1], {
+        a: "CLS",
+        f: function(){return this.a + this.t1}
+    })
+
+    ste((new ns.C1()).f(), "CLSa")
+
+});
+
+test("Multiple mixins", 2, function() {
+    
+    Trait('T1', {t1: "a", xf: function(){return "1"}})
+    Trait('T2', {t2: "b"})
+    Trait('T3', [ns.T2], {t3: function(){return this.t2 + "c"}})
+
+    Class('C', [ns.T1, ns.T2, ns.T3], {
+        a: "CLS",
+        xf: function(){return "2"},
+        f: function(){return this.a + this.t1 + this.t3()}
+    })
+
+    var inst = new ns.C()
+    ste(inst.f(), "CLSabc", "accessing members")
+    ste(inst.xf(), "2", "overriding trait members")
+
+});
+
+//========================================================================================================================
 module("Class inheritance", default_up_down);
 
-test("Example from my-class (http://myjs.fr/my-class/) - NO INFINITE RECURSION!", 1, function() {
-    Class('Person', {
-        _: function(name){this.name=name}
-    })
-
-    Class('Dreamer', ns.Person, {
-        _: function(name, dream){
-                this.$Dreamer(name)
-                this.dream = dream
-        }
-    })
-
-    Class('Nightmarer', ns.Dreamer, {
-        _: function(name, dream){
-            this.$Nightmarer(name, dream)
-            this.field = "OK!" //control flow should be reached and field created
-        },
-        test: function(){ return this.field + "-" + this.name + "-" + this.dream}
-
-    })
-
-    var nm = new ns.Nightmarer("Lissa", "Pie")
-    
-    ste(nm.test(), "OK!-Lissa-Pie", "test to not go into infinite recursion!")
-})
-
-
-/*
-test("Single inheritance", 15, function() {
-    Trait(ns, 'A', {
+test("Inheritance: members test", 15, function() {
+    Class('A', {
         a: 'a',
         ov: 'ov',
         af: function(){return [this.a, this.ov]},
         ovf: function(){ return [this.a, this.ov];}
     })
-    Trait(ns, 'T', ns.A, {
+    
+    Class('T', ns.A, {
         t: 'T',
         ov: 'T_ov',
         tf: function(){return [this.t, this.ov, this.a];},
         ovf: function(){ return [this.t, this.ov, this.a];}
     })
-    eq(ns.A.af()[0], 'a', 'A.af() - ancestor\'s members do not corrupted')
-    eq(ns.A.af()[1], 'ov', 'A.af() - ancestor\'s members do not corrupted 2')
-    eq(ns.A.ovf()[0], 'a', 'A.ovf() - ancestor\'s members do not corrupted')
-    eq(ns.A.ovf()[1], 'ov', 'A.ovf() - ancestor\'s members do not corrupted 2')
+    var a = new ns.A(), t = new ns.T()
+    
+    ste(a.af()[0], 'a', 'A.af() - ancestor\'s members do not corrupted')
+    ste(a.af()[1], 'ov', 'A.af() - ancestor\'s members do not corrupted 2')
+    ste(a.ovf()[0], 'a', 'A.ovf() - ancestor\'s members do not corrupted')
+    ste(a.ovf()[1], 'ov', 'A.ovf() - ancestor\'s members do not corrupted 2')
 
-    eq(ns.T.t, 'T', 't = "T" - own members not corrupted')
-    eq(ns.T.ov, 'T_ov', 't = "T" - own overriden members are correct')
+    ste(t.t, 'T', 't = "T" - own members not corrupted')
+    ste(t.ov, 'T_ov', 't = "T" - own overriden members are correct')
 
-    eq(ns.T.a, 'a', 'T.a = "a" - inherited variable')
+    ste(t.a, 'a', 'T.a = "a" - inherited variable')
 
-    eq(ns.T.tf()[0], 'T', 'Own T.tf(), should correctly access ancestor/overriden fields')
-    eq(ns.T.tf()[1], 'T_ov', 'Own T.tf(), should correctly access ancestor/overriden fields 2')
-    eq(ns.T.tf()[2], 'a', 'Own T.tf(), should correctly access ancestor/overriden fields 3')
+    ste(t.tf()[0], 'T', 'Own T.tf(), should correctly access ancestor/overriden fields')
+    ste(t.tf()[1], 'T_ov', 'Own T.tf(), should correctly access ancestor/overriden fields 2')
+    ste(t.tf()[2], 'a', 'Own T.tf(), should correctly access ancestor/overriden fields 3')
 
-    eq(ns.T.af()[0], 'a' , 'Virtual function effect: Inherited A.af() -> T.af(), overriden variables should be changed')
-    eq(ns.T.af()[1], 'T_ov' , 'Virtual function effect: Inherited A.af() -> T.af(), overriden variables should be changed 2')
+    ste(t.af()[0], 'a' , 'Virtual function effect: Inherited A.af() -> T.af(), overriden variables should be changed')
+    ste(t.af()[1], 'T_ov' , 'Virtual function effect: Inherited A.af() -> T.af(), overriden variables should be changed 2')
 
-    eq(ns.T.ovf()[0], 'T', 'Overriden A.ovf() -> T.ovf() - output should be as in T.tf()')
-    eq(ns.T.ovf()[1], 'T_ov', 'Overriden A.ovf() -> T.ovf() - output should be as in T.tf() 2')
-    eq(ns.T.ovf()[2], 'a', 'Overriden A.ovf() -> T.ovf() - output should be as in T.tf() 3')
+    ste(t.ovf()[0], 'T', 'Overriden A.ovf() -> T.ovf() - output should be as in T.tf()')
+    ste(t.ovf()[1], 'T_ov', 'Overriden A.ovf() -> T.ovf() - output should be as in T.tf() 2')
+    ste(t.ovf()[2], 'a', 'Overriden A.ovf() -> T.ovf() - output should be as in T.tf() 3')
 });
 
 
-test("Multiple inheritance", 6, function() {
-    Trait(ns, 'A', {
-        a: 'a',
-        ovf: function(){return 'A'},
-        anc_ovf: function(){ return 'anc_A';},
-        anc_ovf2: function(){ return 'anc_A_2';}
+test("Rewritten example from my-class (http://myjs.fr/my-class/) - NO INFINITE RECURSION!", 1, function() {
+    var N = jassino.NS
+    
+    Class('Person', {
+        old_method: function(){ return "Hey!, "},
+        _: function(name){this.name=name}  //constructor
     })
-    Trait(ns, 'B', {
-        b: 'b',
-        ovf: function(){return 'B'},
-        anc_ovf: function(){ return 'anc_B';},
-        anc_ovf2: function(){ return 'anc_B_2';}
-    })
-    Trait(ns, 'C', {
-        c: 'c',
-        anc_ovf: function(){ return 'anc_C';}
-    })
-    Trait(ns, 'T', [ns.A, ns.B, ns.C], {
-        ovf: function(){ return 'T';}
-    })
-    eq(ns.T.a, 'a', 'inherited variable')
-    eq(ns.T.b, 'b', 'inherited variable 2')
-    eq(ns.T.c, 'c', 'inherited variable 3')
 
-    eq(ns.T.ovf(), 'T', 'Overriden ovf() -> T.ovf()')
-    eq(ns.T.anc_ovf(), 'anc_C', 'Inheritance order: override 1 - last override in C')
-    eq(ns.T.anc_ovf2(), 'anc_B_2', 'Inheritance order: override 2 - last override in B')
-});
-//========================================================================================================================
-test("Inheritance transitive law, inheritance no-array syntax", 4, function() {
-    Trait(ns, 'A', {
-        a: 'a',
-        ovf: function(){return 'A'},
-        anc_ovf: function(){ return 'anc_A';}
+    Class('Dreamer', N.Person, {
+        _:function(name, dream){    //constructor
+                this.Person(name)
+                this.dream = dream
+        }
     })
-    Trait(ns, 'B', ns.A, {
-        b: 'b',
-        ovf: function(){return 'B'},
-        anc_ovf: function(){ return 'anc_B';}
-    })
-    Trait(ns, 'T', ns.B, {
-        ovf: function(){ return 'T';}
-    })
-    eq(ns.T.a, 'a', 'inherited variable')
-    eq(ns.T.b, 'b', 'inherited variable 2')
 
-    eq(ns.T.ovf(), 'T', 'Overriden ovf() -> T.ovf()')
-    eq(ns.T.anc_ovf(), 'anc_B', 'Inheritance override stack: last override happened in B')
-});*/
-//========================================================================================================================
-//========================================================================================================================
-//========================================================================================================================
-//========================================================================================================================
-//========================================================================================================================
-//========================================================================================================================
-//========================================================================================================================
-//========================================================================================================================
+    var custom_ns = {}
+    Class(custom_ns, 'Nightmarer', N.Dreamer, {
+        field: "dreams about",  //another way to specify instance members 
+        
+        old_method: function(){ return "Whoops..., "}, //overriding
+        
+        _:function(name, dream){
+            this.Dreamer(name, dream)
+            this.field = this.field.toUpperCase() //control flow should be reached and field created
+        },
+        test: function(){ return this.Dreamer$.old_method() + 
+                                 this.name + " " + this.field + " " + this.dream}
 
+    })
+
+    var nm = new custom_ns.Nightmarer("Lissa", "Pie")
+    
+    ste(nm.test(), "Hey!, Lissa DREAMS ABOUT Pie", "test to not go into infinite recursion!")
+})
+
+//========================================================================================================================
+module("COMPLEX EXAMPLE 1", default_up_down);
+
+test("Bee Colony Simplified", 0, function() {
+    //all parameters in namespaces are totally custom, and have no meaning for jassino logic
+    //just an example how it can be used
+    var Bees = {   
+        namespace_name: 'Bees',
+        moto: "We fly and work!"
+    }
+
+    Trait('Fly', {
+        location: null,
+        fly_to: function(location){this.location = location}
+    })
+
+    Class('BeeColony', {
+        _: function(bees){this.bees=bees}
+    })
+
+    Class('Bee', {
+        gender: null,
+        _: function(name){this.gender=gender}  //constructor
+    })
+
+    Class('Qeen', ns.Bee, {
+        _: function(name){this.name=name}  //constructor
+    })
+    
+    //----------------------------------------------------------------------------------------------
+    var Plants = {
+        namespace_name: 'Plants',
+        moto: "We're growing!"
+    }
+
+
+})
 
 
 
