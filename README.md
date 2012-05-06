@@ -1,7 +1,8 @@
 # Jassino
 
 Very light, fast and well unit-tested object orientation in Javascript
-gives the nearly prototype-native performance on instantiation.
+
+Gives the nearly prototype-native performance on instantiation.
 
 ## Features
 
@@ -17,7 +18,7 @@ gives the nearly prototype-native performance on instantiation.
 [Detailed capabilities of the library may be seen from unit-test examples](https://github.com/altitudebreath/jassino/blob/master/test/test.js)  
 
 ## at a glance (example from unit-tests)
-```
+```javascript
  test("Rewritten example from my-class (http://myjs.fr/my-class/) - NO INFINITE RECURSION!", 1, function() {
      var N = jassino.NS
      
