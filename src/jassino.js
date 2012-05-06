@@ -2,7 +2,8 @@
 *******************                                   Jassino                                 ***********************
 *******************      Very light, fast and well tested object orientation in Javascript    ***********************
 *********************************************************************************************************************
-*
+*   version: 0.1
+*   
 *   Copyright (c)  Denis Volokhovski, 2012
 *   Copyright (c) 2011 Jie Meng-Gerard, ancestor code from https://github.com/jiem/my-class
 */
@@ -160,7 +161,10 @@ var jassino = (function() {
 
         //------------------------------------- creating root constructor -------------------------------------
         if (saved_ctor) klass = function(){saved_ctor.apply(this, arguments)}
-        else klass = function(){}
+        else klass = (SuperClass ? 
+                        function(){SuperClass.apply(this, arguments)} :    //automatic super constructor call
+                        function(){}
+            )
         
         _nsadd(data, klass)
 

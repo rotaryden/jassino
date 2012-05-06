@@ -290,6 +290,42 @@ test("Inheritance: members test", 15, function() {
     ste(t.ovf()[2], 'a', 'Overriden A.ovf() -> T.ovf() - output should be as in T.tf() 3')
 });
 
+test("Inheritance from usual Prototype-Based pseudo class)", 12, function() {
+    function A(constr_var){
+        this.constr_var = constr_var
+    }
+    A.prototype.a = 'a'
+    A.prototype.ov = 'ov'
+    A.prototype.af = function(){return [this.a, this.ov]}
+    A.prototype.ovf = function(){ return [this.a, this.ov];}
+
+    Class('T', A, {
+        $N: 'A',  //OBLIGATE parameter for natively constructed superclasses !!!
+        t: 'T',
+        ov: 'T_ov',
+        tf: function(){return [this.t, this.ov, this.a];},
+        ovf: function(){ return [this.t, this.ov, this.a];}
+    })
+    var t = new ns.T('CONSTRUCTION')
+
+    ste(t.constr_var, 'CONSTRUCTION', 't = super constructor works')
+
+    ste(t.t, 'T', 't = "T" - own members not corrupted')
+    ste(t.ov, 'T_ov', 't = "T" - own overridden members are correct')
+
+    ste(t.a, 'a', 'T.a = "a" - inherited variable')
+
+    ste(t.tf()[0], 'T', 'Own T.tf(), should correctly access ancestor/overriden fields')
+    ste(t.tf()[1], 'T_ov', 'Own T.tf(), should correctly access ancestor/overriden fields 2')
+    ste(t.tf()[2], 'a', 'Own T.tf(), should correctly access ancestor/overriden fields 3')
+
+    ste(t.af()[0], 'a' , 'Virtual function effect: Inherited A.af() -> T.af(), overriden variables should be changed')
+    ste(t.af()[1], 'T_ov' , 'Virtual function effect: Inherited A.af() -> T.af(), overriden variables should be changed 2')
+
+    ste(t.ovf()[0], 'T', 'Overridden A.ovf() -> T.ovf() - output should be as in T.tf()')
+    ste(t.ovf()[1], 'T_ov', 'Overridden A.ovf() -> T.ovf() - output should be as in T.tf() 2')
+    ste(t.ovf()[2], 'a', 'Overridden A.ovf() -> T.ovf() - output should be as in T.tf() 3')
+})
 
 test("Rewritten example from my-class (http://myjs.fr/my-class/) - NO INFINITE RECURSION!", 1, function() {
     var N = jassino.NS
