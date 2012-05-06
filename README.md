@@ -58,3 +58,9 @@ Why yet another one? Because of specific syntax sugar, to make things just handy
     ste(nm.test(), "Hey!, Okay, Lissa DREAMS ABOUT Pie", "test to not go into infinite recursion!")
  })
  ```
+ 
+ ##Installation
+ 
+ Just include _jassino.min.js_ into your javascript bundle/project.
+  
+ You may rebuild it from source running ./build_min.sh, provided you have nodejs installed.

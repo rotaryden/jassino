@@ -5,7 +5,8 @@
 *   version: 0.1
 *   
 *   Copyright (c)  Denis Volokhovski, 2012
-*   Copyright (c) 2011 Jie Meng-Gerard, ancestor code from https://github.com/jiem/my-class
+*   
+*   Inspired by My-class library from Jie Meng-Gerard: https://github.com/jiem/my-class
 */
     
 var jassino = (function() {
