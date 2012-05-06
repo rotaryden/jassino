@@ -1,4 +1,4 @@
-# Jassino ![Alt text](http://bost.ocks.org/mike/uberdata.png)
+# Jassino ![Alt text]()
 Very light, fast and well unit-tested object orientation in Javascript
 
 Gives the nearly prototype-native performance on instantiation.
