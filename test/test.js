@@ -362,6 +362,32 @@ test("Rewritten example from my-class (http://myjs.fr/my-class/) - NO INFINITE R
     ste(nm.test(), "Hey!, Lissa DREAMS ABOUT Pie", "test to not go into infinite recursion!")
 })
 
+test("DEEP inheritance", 1, function() {
+    var LEVEL = 500
+    var nspace = {}
+    
+    Class(nspace, 'C0', {
+        get_accum: function(){ return this.accum },
+        _: function(i){
+            this.accum += "{C0: {}}"
+        }  //constructor
+    })
+    var self, i;
+    for (i=1; i < LEVEL; i++){
+        self = 'C' + i.toString()
+        var ancestor = 'C' + (i - 1).toString()
+        
+        Class(nspace, self, nspace[ancestor], {
+            _: function(i){
+                this.accum = '{C' + i.toString() + ": " + (this.accum || "")
+                this['C' + (i - 1).toString()](i - 1)
+                this.accum += "}"
+            }  //constructor
+        })
+    }
+    var accum = (new nspace[self](i - 1)).get_accum()
+    ste( accum.replace(/[\w{}\s]+/g, "").length, i, "Here is chain: " + dump(accum))
+})
 //========================================================================================================================
 module("COMPLEX EXAMPLE 1", default_up_down);
 

@@ -6,13 +6,13 @@ Gives the nearly prototype-native performance on instantiation.
 
 ## Features
 
-* Classes work on native Javascript prototypes, facilitating only creation time but give fast instantiation
-* Compatible with native prototype-bases pseudo classes - you may inherit Jassino class from native one
+* Classes converted to native Javascript prototypes without dynamic overhead, only declaration time is facilitating but instantiation is fast
+* Compatible with prototype-bases pseudo classes - you may inherit Jassino class from native one
 * Very simple and handy Traits implementation
-* Single inheritance from base class (prototype backed, without any dynamic overhead)
+* Single inheritance from base class
 * Multiple inheritance from Traits
 * Calls to super class constructor and members is done properly in multi-level inheritance, no dead loops :)
-* Any level of inheritance allowed (up to your stack size :)
+* Any level of inheritance allowed (up to your stack size :), tested 2000 on Chromium )
 
 
 [Detailed capabilities of the library may be seen from unit-test examples](https://github.com/altitudebreath/jassino/blob/master/test/test.js)  
