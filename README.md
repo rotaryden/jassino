@@ -1,7 +1,8 @@
 ![Alt text](https://github.com/altitudebreath/jassino/raw/master/site/logo.png)
-Very light, fast and well unit-tested object orientation in Javascript
 
-Gives the nearly prototype-native performance on instantiation.
+## What is it?
+
+Light, fast, small and well unit-tested object orientation in Javascript
 
 ## Features
 
