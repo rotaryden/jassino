@@ -3,6 +3,7 @@
 ## What is it?
 
 Light, fast, small and well unit-tested OOP in Javascript.
+
 Why yet another one? Because of specific syntax sugar, to make things just handy.
 
 ## Features
