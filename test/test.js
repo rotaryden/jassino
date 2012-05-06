@@ -157,7 +157,7 @@ test("Multiple inheritance", 6, function() {
     eq(ns.T.anc_ovf2(), 'anc_B_2', 'Inheritance order: override 2 - last override in B')
 });
 //========================================================================================================================
-test("Inheritance transitive law, inheritance no-array syntax", 4, function() {
+test("Inheritance transitive law", 4, function() {
     Trait('A', {
         a: 'a',
         ovf: function(){return 'A'},
@@ -346,20 +346,21 @@ test("Rewritten example from my-class (http://myjs.fr/my-class/) - NO INFINITE R
     Class(custom_ns, 'Nightmarer', N.Dreamer, {
         field: "dreams about",  //another way to specify instance members 
         
-        old_method: function(){ return "Whoops..., "}, //overriding
+        old_method: function(){ return "Okay, "}, //overriding
         
         _:function(name, dream){
             this.Dreamer(name, dream)
             this.field = this.field.toUpperCase() //control flow should be reached and field created
         },
         test: function(){ return this.Dreamer$.old_method() + 
+                                 this.old_method() +
                                  this.name + " " + this.field + " " + this.dream}
 
     })
 
     var nm = new custom_ns.Nightmarer("Lissa", "Pie")
     
-    ste(nm.test(), "Hey!, Lissa DREAMS ABOUT Pie", "test to not go into infinite recursion!")
+    ste(nm.test(), "Hey!, Okay, Lissa DREAMS ABOUT Pie", "test to not go into infinite recursion!")
 })
 
 test("DEEP inheritance", 1, function() {
