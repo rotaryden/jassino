@@ -59,7 +59,7 @@ Why yet another one? Because of specific syntax sugar, to make things just handy
  })
  ```
  
- ##Installation
+ ## Installation
  
  Just include _jassino.min.js_ into your javascript bundle/project.
   
