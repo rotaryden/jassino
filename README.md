@@ -1,4 +1,4 @@
-# Jassino ![Alt text](https://github.com/altitudebreath/jassino/raw/master/site/logo.png)
+![Alt text](https://github.com/altitudebreath/jassino/raw/master/site/logo.png)
 Very light, fast and well unit-tested object orientation in Javascript
 
 Gives the nearly prototype-native performance on instantiation.
