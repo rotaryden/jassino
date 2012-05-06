@@ -59,8 +59,8 @@ Why yet another one? Because of specific syntax sugar, to make things just handy
  })
  ```
  
- ## Installation
+## Installation
  
- Just include _jassino.min.js_ into your javascript bundle/project.
+Just include _jassino.min.js_ into your javascript bundle/project.
   
- You may rebuild it from source running ./build_min.sh, provided you have nodejs installed.
+You may rebuild it from source running ./build_min.sh, provided you have nodejs installed.
