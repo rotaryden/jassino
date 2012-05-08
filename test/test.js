@@ -25,15 +25,12 @@ var Class = Jassino.Class,
 var eq = equal, ste = strictEqual, rs = raises;
 
 //========================================================================================================================
-module("Basic definitions")
+module("Basic definitions", default_up_down)
 
-test("Class and Trait definitions, typeof Class/Trait === function",
-        2, //number of asserts those should be executed
-        function() {
+test("Class and Trait definitions, typeof Class/Trait === function", 2, function() {
             ste(typeof Class, "function", 'Class')
             ste(typeof Trait, "function", 'Trait')
-        }
-);
+});
 
 //========================================================================================================================
 module("Class/Trait creation, NameSpaces --", default_up_down);
@@ -128,6 +125,7 @@ test("Single inheritance", 15, function() {
 });
 
 
+//-------------------------------------------------------------------------------------------------------------------
 test("Multiple inheritance", 6, function() {
     Trait('A', {
         a: 'a',
@@ -183,6 +181,7 @@ test("Inheritance transitive law", 4, function() {
 //========================================================================================================================
 module("Basic Class definitions and operations", default_up_down);
 
+//-------------------------------------------------------------------------------------------------------------------
 test("Object members should not become class members", 2, function() {
     Class('T', {
         a: 5,
@@ -194,7 +193,8 @@ test("Object members should not become class members", 2, function() {
 
 });
 
-test("Simple instantiation", 1, function() {
+//-------------------------------------------------------------------------------------------------------------------
+test("Simple instantiation with implicit constructor", 1, function() {
     Class('T', {
         a: 5,
         f: function(){return this.a}
@@ -204,16 +204,66 @@ test("Simple instantiation", 1, function() {
     eq(t.f(), 5, 'member call')
 });
 
-test("Constructor manual setup", 1, function() {
+//========================================================================================================================
+module("Class constructors", default_up_down);
+
+//-------------------------------------------------------------------------------------------------------------------
+test("Explicit constructor", 1, function() {
     Class('T', {
         _: function(num){this.num = num},
         a: "zz",
         f: function(){return this.a + this.num}
     })
-    
+
     var t = new ns.T("xx")
+
+    ste(t.f(), "zzxx", 'member call test')
+});
+
+//-------------------------------------------------------------------------------------------------------------------
+test("Implicit constructor", 1, function() {
+    Class('A', {
+        _:function(ancestor_name){
+            this.a = "ancestor"
+            this.b = ancestor_name
+        }
+    })
     
-	ste(t.f(), "zzxx", 'member call')
+    Class('T', ns.A, {
+        res: function(){return this.a + " " + this.b}
+    })
+
+    var t = new ns.T("Sam", "Guy")
+
+    ste(t.res(), "ancestor Sam", 'work properly with super classes, ignores extra parameters')
+});
+
+
+//-------------------------------------------------------------------------------------------------------------------
+test("Explicit shortcut - no SuperClass", 3, function() {
+    
+    Class('T', {
+        _: ['country', 'flag_color']
+    })
+
+    var t = new ns.T("China", "Red")
+ 
+    ok(true, dump(t))
+    ste(t.country, "China", 'initializes parameter')
+    ste(t.flag_color, "Red", 'initializes parameter')
+});
+
+
+//-------------------------------------------------------------------------------------------------------------------
+test("Explicit shortcut with super args but no SuperClass (Error)", 1, function() {
+    rs(function(){
+        Class('T', {
+            _: [[], ['country', 'flag_color']]
+        })
+        },
+        Jassino.ConstructorError,
+        "not allowed"
+    )
 });
 
 //========================================================================================================================
@@ -231,6 +281,7 @@ test("Single mixin", 1, function() {
 
 });
 
+//-------------------------------------------------------------------------------------------------------------------
 test("Multiple mixins", 2, function() {
     
     Trait('T1', {t1: "a", xf: function(){return "1"}})
@@ -252,6 +303,7 @@ test("Multiple mixins", 2, function() {
 //========================================================================================================================
 module("Class inheritance", default_up_down);
 
+//-------------------------------------------------------------------------------------------------------------------
 test("Inheritance: members test", 15, function() {
     Class('A', {
         a: 'a',
@@ -290,6 +342,7 @@ test("Inheritance: members test", 15, function() {
     ste(t.ovf()[2], 'a', 'Overriden A.ovf() -> T.ovf() - output should be as in T.tf() 3')
 });
 
+//-------------------------------------------------------------------------------------------------------------------
 test("Inheritance from usual Prototype-Based pseudo class)", 12, function() {
     function A(constr_var){
         this.constr_var = constr_var
@@ -328,6 +381,7 @@ test("Inheritance from usual Prototype-Based pseudo class)", 12, function() {
     ste(t.ovf()[2], 'a', 'Overridden A.ovf() -> T.ovf() - output should be as in T.tf() 3')
 })
 
+//-------------------------------------------------------------------------------------------------------------------
 test("Inheritance transitive law", 4, function() {
     Class('A', {
         a: 'a',
@@ -353,7 +407,7 @@ test("Inheritance transitive law", 4, function() {
     eq(t.anc_ovf(), 'anc_B', 'Inheritance override stack: last override happened in B')
 });
 
-
+//-------------------------------------------------------------------------------------------------------------------
 test("Rewritten example from my-class (http://myjs.fr/my-class/) - NO INFINITE RECURSION!", 1, function() {
     var N = Jassino.NS
     
@@ -387,8 +441,9 @@ test("Rewritten example from my-class (http://myjs.fr/my-class/) - NO INFINITE R
     ste(nm.test(), "Hey!, Okay, Lissa DREAMS ABOUT Pie", "test to not go into infinite recursion!")
 })
 
+//-------------------------------------------------------------------------------------------------------------------
 test("DEEP inheritance", 1, function() {
-    var LEVEL = 500
+    var LEVEL = 100
     var nspace = {}
     
     Class(nspace, 'C0', {
@@ -465,7 +520,7 @@ test("Bee Colony Simplified", 0, function() {
         // On declaration time, generate constructor accepting 2 parameters,
         // first parameter pass to super constructor
         // second parameter write to this.name 
-        _: ['$gender', 'name']
+        _: [['gender'], ['name']]
     })
     //----------------------------------------------------------------------------------------------
     var Plants = {

@@ -47,11 +47,11 @@ var Jassino = (function() {
     }
 
     //==============================================================================================
-    function make_exc(){ return function(d){this.d=d;} }
+    function make_exc(){ return function(data, message){this.d=data; this.m = message} }
 
     function slice(arr, begin, end){return Array.prototype.slice.call(arr, begin, end)}
     
-    function is_array(a){return typeof a.slice !== UNDEF;}
+    function is_array(a){return Object.prototype.toString.call(a) === '[object Array]';} //ECMAScript recommendation
 
     function extend(destination, source, override) {
         if (!destination || !source) return destination;
@@ -172,9 +172,8 @@ var Jassino = (function() {
 
         //------------------------------ creating constructor at declaration time -------------------------------------
         if ( ! saved_ctor)
-            //"default constructor", handles also _:[], _:null etc
-            //to avoid tricky errors, this allowed only if all constructors in a chain are parameterless
-            klass = SuperClass ? function(){SuperClass.call(this)} : function(){}
+            //"default (implicit) constructor", handles also _:[], _:null etc
+            klass = SuperClass ? function(){SuperClass.apply(this, arguments)} : function(){}
             
         else if (typeof saved_ctor === FUN)
             //---- full explicit constructor
@@ -187,14 +186,16 @@ var Jassino = (function() {
 
             //saved_ctor[0] - super agrs, [1] - constructor args
             if (! is_array(saved_ctor[0])){
-                if (SuperClass) throw J.ConstructorError("Shortcut _: [arg,...] assumes NO SuperClass" + saved_ctor)
+                if (SuperClass) throw new J.ConstructorError(saved_ctor, 
+                    "Shortcut _: [arg,...] assumes NO SuperClass")
                 klass = function(){
                     for (var i=0; i < saved_ctor.length; i++) 
                         this[saved_ctor[i]] = arguments[i]
                 }
             }else{
                 //works also for [[],[]] - explicit super call triggering without parameters
-                if ( ! SuperClass) throw J.ConstructorError("Shortcut _: [[super_arg1,...], [arg1,...]] assumes SuperClass" + saved_ctor)
+                if ( ! SuperClass) throw new J.ConstructorError(saved_ctor,
+                        "Shortcut _: [[super_arg1,...], [arg1,...]] assumes SuperClass")
                 var base_of_ctor_args = saved_ctor[0].length,
                     ctor_args = saved_ctor[1]
                 klass = function(){
@@ -204,7 +205,7 @@ var Jassino = (function() {
                 }
             }
         }else
-            throw J.ConstructorError(saved_ctor)
+            throw new J.ConstructorError(saved_ctor)
         
         _nsadd(data, klass)
 
