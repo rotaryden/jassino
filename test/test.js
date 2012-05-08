@@ -274,6 +274,31 @@ test("Explicit shortcut with super args but no SuperClass (Error)", 1, function(
     )
 });
 
+//-------------------------------------------------------------------------------------------------------------------
+test("Explicit shortcut constructor with super classes", 1, function() {
+    
+    Class('A', {
+        _:function(ancestor_name){
+            this.a = "ancestor"
+            this.a1 = ancestor_name
+        }
+    })
+
+    Class('B', ns.A, {
+        _: [['ancestor NAME'], ['b']]    //first array is only for readability, only its size is used 
+    })
+    
+    Class('T', ns.B, {
+        _:[['anc', 'b'], ['c']],
+        res: function(){return this.a + " " + this.a1 + " " + this.b + " " + this.c}
+    })
+
+    var t = new ns.T("Sam", "b", "c")
+
+    ste(t.res(), "ancestor Sam b c", 'work properly with super classes, ignores extra parameters')
+});
+
+
 //========================================================================================================================
 module("Classes mixed-in with Traits", default_up_down);
 

@@ -47,7 +47,19 @@ var Jassino = (function() {
     }
 
     //==============================================================================================
-    function make_exc(){ return function(data, message){this.d=data; this.m = message} }
+    function dump(obj){
+        var res = obj.toString()
+        if (res == "[object Object]")
+        {
+            res = ''
+            for (var p in obj) {
+                res += p + '::' + obj[p] + '\n';
+            }
+        }
+        return res;
+    }
+    
+    function make_exc(){ return function(data, message){this.message = (message || "DATA:") + " ==> " +  dump(data)} }
 
     function slice(arr, begin, end){return Array.prototype.slice.call(arr, begin, end)}
     
