@@ -10,15 +10,15 @@ function dump(data, typ) {
 	});
 }
 
-var Class = jassino.Class,
-    Trait = jassino.Trait,
-    ns = jassino.NS,
+var Class = Jassino.Class,
+    Trait = Jassino.Trait,
+    ns = Jassino.NS,
     default_up_down = {
         setup: function() {
-            ns = jassino.NS = {}
+            ns = Jassino.NS = {}
         },
         teardown: function() {
-            ns = jassino.NS = {}
+            ns = Jassino.NS = {}
         }
     }
 
@@ -56,24 +56,24 @@ test("Class/Trait creation -> ns(ns)", 2, function() {
 test("Duplicate Class/Trait creation)", 2, function() {
     var n = {}
     Class(n, 'A', {})
-    rs(function(){Class(n, 'A', {})}, jassino.DuplicationError, 'for Class: ' + dump(n))
+    rs(function(){Class(n, 'A', {})}, Jassino.DuplicationError, 'for Class: ' + dump(n))
     Trait(n, 'T', {})
-    rs(function(){Trait(n, 'T', {})}, jassino.DuplicationError, 'for Trait')
+    rs(function(){Trait(n, 'T', {})}, Jassino.DuplicationError, 'for Trait')
 });
 
 test("Duplicate Class/Trait creation - default NS)", 2, function() {
     Class('A', {})
-    rs(function(){Class('A', {})}, jassino.DuplicationError, 'for Class: ' + dump(ns))
+    rs(function(){Class('A', {})}, Jassino.DuplicationError, 'for Class: ' + dump(ns))
     Trait('T', {})
-    rs(function(){Trait('T', {})}, jassino.DuplicationError, 'for Trait')
+    rs(function(){Trait('T', {})}, Jassino.DuplicationError, 'for Trait')
 });
 
 test("Invalid namespace object test on Class/Trait creation)", 5, function() {
-    rs(function(){Class("blabla")}, jassino.ArgumentsError, "arguments.length < 2 for Class")
-    rs(function(){Class(null, 'A', {})}, jassino.ArgumentsError, 'null ns for Class')
-    rs(function(){Trait(null, 'T', {})}, jassino.ArgumentsError, 'null ns for Trait')
-    rs(function(){Class("", {})}, jassino.ArgumentsError, 'empty name for Class')
-    rs(function(){Trait("", {})}, jassino.ArgumentsError, 'empty for Trait')
+    rs(function(){Class("blabla")}, Jassino.ArgumentsError, "arguments.length < 2 for Class")
+    rs(function(){Class(null, 'A', {})}, Jassino.ArgumentsError, 'null ns for Class')
+    rs(function(){Trait(null, 'T', {})}, Jassino.ArgumentsError, 'null ns for Trait')
+    rs(function(){Class("", {})}, Jassino.ArgumentsError, 'empty name for Class')
+    rs(function(){Trait("", {})}, Jassino.ArgumentsError, 'empty for Trait')
 });
 
 //========================================================================================================================
@@ -301,6 +301,7 @@ test("Inheritance from usual Prototype-Based pseudo class)", 12, function() {
 
     Class('T', A, {
         $N: 'A',  //OBLIGATE parameter for natively constructed superclasses !!!
+        _:[['constr_var'],[]],
         t: 'T',
         ov: 'T_ov',
         tf: function(){return [this.t, this.ov, this.a];},
@@ -354,7 +355,7 @@ test("Inheritance transitive law", 4, function() {
 
 
 test("Rewritten example from my-class (http://myjs.fr/my-class/) - NO INFINITE RECURSION!", 1, function() {
-    var N = jassino.NS
+    var N = Jassino.NS
     
     Class('Person', {
         old_method: function(){ return "Hey!, "},
@@ -362,10 +363,7 @@ test("Rewritten example from my-class (http://myjs.fr/my-class/) - NO INFINITE R
     })
 
     Class('Dreamer', N.Person, {
-        _:function(name, dream){    //constructor
-                this.Person(name)
-                this.dream = dream
-        }
+        _:[['name'], ['dream']]  //constructor shortcut: name -> super call, dream -> this.dream
     })
 
     var custom_ns = {}
@@ -419,31 +417,56 @@ test("DEEP inheritance", 1, function() {
 module("COMPLEX EXAMPLE 1", default_up_down);
 
 test("Bee Colony Simplified", 0, function() {
-    //all parameters in namespaces are totally custom, and have no meaning for jassino logic
+    /***************************************************************************************
+     * Full featured Example
+     *************************************************************************************/
+
+    var Class = Jassino.Class, 
+        Trait = Jassino.Trait,
+        NS = Jassino.NS
+
+    //all parameters in namespaces are totally custom, and have no meaning for Jassino logic
     //just an example how it can be used
-    var Bees = {   
-        namespace_name: 'Bees',
+    var Insects = {   
+        namespace_name: 'Insects',
         moto: "We fly and work!"
     }
 
-    Trait('Fly', {
-        location: null,
-        fly_to: function(location){this.location = location}
+    Trait(Insects, 'Fly', {     //explicit namespace
+        location: null,         //variables can also be mixed from traits
+        fly_to: function(location)
+                {this.location = location}
+    })
+
+    Trait('Work', {          //this will go to default namespace - Jassino.NS
+        work_on: function(place){return "Working on " + place.toString()}
     })
 
     Class('BeeColony', {
-        _: function(bees){this.bees=bees}
+        _: function(bees){this.bees=bees}    //Full form of constructor
     })
 
-    Class('Bee', {
-        gender: null,
-        _: function(name){this.gender=gender}  //constructor
-    })
+    function Bee(gender){             //native pseudo class         
+        this.gender = gender
+    }
 
-    Class('Qeen', ns.Bee, {
-        _: function(name){this.name=name}  //constructor
+    Class(Insects, 'Queen', Bee, {      
+       $N: 'Bee',                  //inheriting from native pseudo class requires explicit name spec
+        _: function(name){         //Full form of constructor
+            this.Bee('F')          //super constructor call
+            this.name=name
+        }  //constructor
     })
     
+    Class('Worker', Bee, [NS.Work, Insects.Fly], {
+        $N: 'Bee',
+        //Sort Constructor form form. 
+        // This means: 
+        // On declaration time, generate constructor accepting 2 parameters,
+        // first parameter pass to super constructor
+        // second parameter write to this.name 
+        _: ['$gender', 'name']
+    })
     //----------------------------------------------------------------------------------------------
     var Plants = {
         namespace_name: 'Plants',

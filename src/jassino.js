@@ -2,14 +2,14 @@
 *******************                                   Jassino                                 ***********************
 *******************      Very light, fast and well tested object orientation in Javascript    ***********************
 *********************************************************************************************************************
-*   version: 0.1
+*   version: 0.2
 *   
 *   Copyright (c)  Denis Volokhovski, 2012
 *   
 *   Inspired by My-class library from Jie Meng-Gerard: https://github.com/jiem/my-class
 */
     
-var jassino = (function() {
+var Jassino = (function() {
     /*
     * Terminology:
     * class - constructor function F
@@ -27,21 +27,31 @@ var jassino = (function() {
 
         _SUPER_OBJ_SUFFIX  = '$',       //super object suffix
         _SUPER_CLASS       = '$C',      //reference to SuperClass in class 
-        _SUPER_CLASS_NAME  = '$N'       // reference to SuperClass name in class -OR- body (in case of inheriting from usual function) 
-
+        _SUPER_CLASS_NAME  = '$N',       // reference to SuperClass name in class -OR- body (in case of inheriting from usual function)
+        
+        UNDEF = "undefined",
+        FUN = "function",
+        STR = "string",
+        OBJ = 'object'
+    
     //------------------------------------------------------------------------------------------------
     var J = {
         NS: {}, //default namespace
 
-        DuplicationError: function(d){this.d=d;},
-        ArgumentsError: function(d){this.d=d;},
+        DuplicationError: make_exc(),
+        ArgumentsError: make_exc(),
+        ConstructorError: make_exc(),
 
         extend: extend,
         is_array: is_array
     }
 
     //==============================================================================================
-    function is_array(a){return a.slice !== undefined;}
+    function make_exc(){ return function(d){this.d=d;} }
+
+    function slice(arr, begin, end){return Array.prototype.slice.call(arr, begin, end)}
+    
+    function is_array(a){return typeof a.slice !== UNDEF;}
 
     function extend(destination, source, override) {
         if (!destination || !source) return destination;
@@ -71,22 +81,22 @@ var jassino = (function() {
          */
         var ns,
             AE = J.ArgumentsError,
-            name_pos = 0
+            name_pos = 0,
+            len = args.length
         
-        if (args.length < 2) throw new AE(args)
+        if (len < 2) throw new AE(args)
         
         //if first parameter an object => it should be namespace
-        if (args[0] !== null && typeof args[0] === 'object'){ //null is object
+        if (args[0] !== null && typeof args[0] === OBJ){ //null is object
             name_pos++
             ns = args[0]
-        }else if(typeof args[0] === 'string'){
+        }else if(typeof args[0] === STR){
             ns = J.NS
         }else{
             throw new AE(args)
         }
         
-        var len = args.length,
-            data = {
+        var data = {
                 body: args[len - 1], //last parameter - always class/trait definition body object
                 ns: ns,
                 name: args[name_pos]
@@ -101,14 +111,14 @@ var jassino = (function() {
 
             if (var_par_num == 2){ //superclass and traits
                 var traits = args[name_pos + 2]
-                if (typeof par_after_name == 'function' && is_array(traits) ) {
+                if (typeof par_after_name == FUN && is_array(traits) ) {
                     data.sclass = par_after_name
                     data.straits = traits
                 }else{
                     throw new AE(data)
                 }
             }else{ //super class OR traits
-                if (typeof par_after_name === 'function') {
+                if (typeof par_after_name === FUN) {
                     data.sclass = par_after_name
                 }else if (is_array(par_after_name)){
                     data.straits = par_after_name
@@ -121,7 +131,7 @@ var jassino = (function() {
     }
 
     function _nsadd(data, obj){
-        if (data.ns[data.name] !== undefined)
+        if (typeof data.ns[data.name] !== UNDEF)
             throw new J.DuplicationError(data)
         data.ns[data.name] = obj
     }
@@ -160,12 +170,41 @@ var jassino = (function() {
             klass;
         delete body[_CONSTRUCTOR]
 
-        //------------------------------------- creating root constructor -------------------------------------
-        if (saved_ctor) klass = function(){saved_ctor.apply(this, arguments)}
-        else klass = (SuperClass ? 
-                        function(){SuperClass.apply(this, arguments)} :    //automatic super constructor call
-                        function(){}
-            )
+        //------------------------------ creating constructor at declaration time -------------------------------------
+        if ( ! saved_ctor)
+            //"default constructor", handles also _:[], _:null etc
+            //to avoid tricky errors, this allowed only if all constructors in a chain are parameterless
+            klass = SuperClass ? function(){SuperClass.call(this)} : function(){}
+            
+        else if (typeof saved_ctor === FUN)
+            //---- full explicit constructor
+            // super constructor call (if needed) must be done inside as this.SuperClassName()
+            klass = function(){saved_ctor.apply(this, arguments)}
+        
+        else if (is_array(saved_ctor)){
+            //---- Shortcut form SPEC: <[[<'$super_arg', ....>],> ['constructor_arg', ....]<]>
+            //saved_ctor non-empty here due to very first condition
+
+            //saved_ctor[0] - super agrs, [1] - constructor args
+            if (! is_array(saved_ctor[0])){
+                if (SuperClass) throw J.ConstructorError("Shortcut _: [arg,...] assumes NO SuperClass" + saved_ctor)
+                klass = function(){
+                    for (var i=0; i < saved_ctor.length; i++) 
+                        this[saved_ctor[i]] = arguments[i]
+                }
+            }else{
+                //works also for [[],[]] - explicit super call triggering without parameters
+                if ( ! SuperClass) throw J.ConstructorError("Shortcut _: [[super_arg1,...], [arg1,...]] assumes SuperClass" + saved_ctor)
+                var base_of_ctor_args = saved_ctor[0].length,
+                    ctor_args = saved_ctor[1]
+                klass = function(){
+                    SuperClass.apply(this, slice(arguments, 0, base_of_ctor_args))
+                    for (var i=0; i < ctor_args.length; i++)
+                        this[ctor_args[i]] = arguments[base_of_ctor_args + i]
+                }
+            }
+        }else
+            throw J.ConstructorError(saved_ctor)
         
         _nsadd(data, klass)
 
