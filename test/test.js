@@ -65,12 +65,20 @@ test("Duplicate Class/Trait creation - default NS)", 2, function() {
     rs(function(){Trait('T', {})}, Jassino.DuplicationError, 'for Trait')
 });
 
-test("Invalid namespace object test on Class/Trait creation)", 5, function() {
-    rs(function(){Class("blabla")}, Jassino.ArgumentsError, "arguments.length < 2 for Class")
+test("Invalid namespace object test on Class/Trait creation)", function() {
     rs(function(){Class(null, 'A', {})}, Jassino.ArgumentsError, 'null ns for Class')
     rs(function(){Trait(null, 'T', {})}, Jassino.ArgumentsError, 'null ns for Trait')
     rs(function(){Class("", {})}, Jassino.ArgumentsError, 'empty name for Class')
     rs(function(){Trait("", {})}, Jassino.ArgumentsError, 'empty for Trait')
+    rs(function(){Class("ff")}, Jassino.ArgumentsError, 'empty name for Class')
+    rs(function(){Trait("ff")}, Jassino.ArgumentsError, 'empty for Trait')
+    rs(function(){Class()}, Jassino.ArgumentsError, 'empty name for Class')
+    rs(function(){Trait()}, Jassino.ArgumentsError, 'empty for Trait')
+    rs(function(){Class(['a'], {})})
+    rs(function(){Trait(['a'], {})})
+    Trait('T', {})
+    rs(function(){Class(ns, [ns.T], {})})
+    rs(function(){Trait(ns, ['a'], {})})
 });
 
 //========================================================================================================================

@@ -87,10 +87,11 @@ var Jassino = (function() {
         if (len < 2) throw new AE(args)
         
         //if first parameter an object => it should be namespace
-        if (args[0] !== null && typeof args[0] === OBJ){ //null is object
+        if (args[0] !== null && //null is object
+            typeof args[0] === OBJ && ! is_array(args[0])){ 
             name_pos++
             ns = args[0]
-        }else if(typeof args[0] === STR){
+        }else if(args[0] && typeof args[0] === STR){
             ns = J.NS
         }else{
             throw new AE(args)
@@ -104,7 +105,7 @@ var Jassino = (function() {
             //number of parameters between name and body
             var_par_num = len - (name_pos + 1) - 1
 
-        if (! data.name) throw new AE(data)
+        if (! data.name || typeof data.name !== STR) throw new AE(data)
                 
         if (var_par_num > 0){
             var par_after_name = args[name_pos + 1]
