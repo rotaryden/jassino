@@ -8,9 +8,10 @@ Why yet another one? Because of specific syntax sugar, to make things just handy
 
 ## Features
 
-* Classes converted to native Javascript prototypes without dynamic overhead, only declaration time is facilitating but instantiation is fast
-* Very simple and handy Traits implementation
+* Definitions are converted to native Javascript prototypes at script declaration-time, almost no instantiation-time overhead
 * Single inheritance from base class
+* Simple and handy Stateful Traits (instance variables allowed, constructors - not)
+* Getters/setters generation for pseudo-properties
 * Compact shortcuts for automatic constructor call 
 * Multiple inheritance from __Traits__
 * Calls to __super class constructor__ and members is done properly in multi-level inheritance, no dead loops :)

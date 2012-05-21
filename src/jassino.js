@@ -20,15 +20,20 @@ var Jassino = (function() {
     * super object - Super class prototype
     */
     //--------------------- you may change these parameters to your own symbols ----------------------
-    var _CONSTRUCTOR       = '_',       //constructor function in body
-        _CLASS_MEMBERS     = '_C',      //class (static) members definition in body
-        _CLASS             = '_C',      //class self-reference on the class itself
-        _CLASS_NAME        = '_N',      //class name on the class itself
+    var _CONSTRUCTOR       = '_',        //constructor function in body
+        _CLASS_NAME        = '_NAME',    //class name on the class itself
 
-        _SUPER_OBJ_SUFFIX  = '$',       //super object suffix
-        _SUPER_CLASS       = '$C',      //reference to SuperClass in class 
-        _SUPER_CLASS_NAME  = '$N',       // reference to SuperClass name in class -OR- body (in case of inheriting from usual function)
+        _SUPER_OBJ_SUFFIX  = '$',        //super object suffix
         
+        _SUPER_CLASS       = '$C',       //reference to SuperClass in class 
+        _SUPER_CLASS_NAME  = '$NAME',    // reference to SuperClass name in class -OR- body 
+                                         // (in case of inheriting from usual function)
+
+        _CLASS_MEMBERS     = 'CLS',      //class (static) members definition in body
+        _PROPERTIES        = 'PROP',     //properties in Class/Trait body
+        _PROP_FIELD_GET_PREF = 'get_',   //prefix attached to internal property field, so prop() <-get/set-> _PROP_prop
+        _PROP_FIELD_SET_PREF = 'set_',   //prefix attached to internal property field, so prop() <-get/set-> _PROP_prop
+
         UNDEF = "undefined",
         FUN = "function",
         STR = "string",
@@ -38,11 +43,10 @@ var Jassino = (function() {
     var J = {
         NS: {}, //default namespace
 
-        DuplicationError: make_exc(),
-        ArgumentsError: make_exc(),
-        ConstructorError: make_exc(),
+        DuplicationError: _make_exc(),
+        ArgumentsError: _make_exc(),
+        ConstructorError: _make_exc(),
 
-        extend: extend,
         is_array: is_array
     }
 
@@ -59,26 +63,59 @@ var Jassino = (function() {
         return res;
     }
     
-    function make_exc(){ return function(data, message){this.message = (message || "DATA:") + " ==> " +  dump(data)} }
+    
+    function _make_exc(){ return function(data, message){this.message = (message || "DATA:") + " ==> " +  dump(data)} }
 
+    
     function slice(arr, begin, end){return Array.prototype.slice.call(arr, begin, end)}
+    
     
     function is_array(a){return Object.prototype.toString.call(a) === '[object Array]';} //ECMAScript recommendation
 
-    function extend(destination, source, override) {
-        if (!destination || !source) return destination;
-        for (var field in source)
-            if ((destination[field] !== source[field]) &&
-                (destination !== source[field]) && //recursion prevention, from JQuery.extend()
-                (override === true || ! destination.hasOwnProperty(field)))
-                destination[field] = source[field];
+    
+    function _inner_extend(destination, source_field_val, field_name){
+        if ((destination[field_name] !== source_field_val) &&
+            (destination !== source_field_val) //recursion prevention, from JQuery.extend()
+        )
+            destination[field_name] = source_field_val;
+    }
+    
+    
+    function _extend(destination, source) {
+        for (var field_name in source)
+            _inner_extend(destination, source[field_name], field_name)
         return destination;
     }
 
+    
     function _mix(base, mixins){
         for (var i = 0; i < mixins.length; i++)
-            extend(base, mixins[i], true); //overriding previous members
+            _extend(base, mixins[i]); //overriding previous members
     }
+
+    
+    function _check_and_make_props(obj, body){
+        if (body[_PROPERTIES]) {                      //Class Members specified in body
+            //wrappers to bypass one-time closure creation inside a cycle
+            var make_get = function(field_name){   
+                return function(){ return this[field_name] }
+            }
+            var make_set = function(field_name){   
+                return function(val){ this[field_name] = val }
+            }
+            for (var field_name in body[_PROPERTIES]){
+                //put initial value into instance prototype/trait
+                _inner_extend(obj, body[_PROPERTIES][field_name], field_name)
+
+                //put getter/setter into prototype/trait
+                _inner_extend(obj, make_get(field_name), _PROP_FIELD_GET_PREF + field_name)
+                _inner_extend(obj, make_set(field_name), _PROP_FIELD_SET_PREF + field_name)
+            }
+            delete body[_PROPERTIES];
+        }
+        
+    }
+    
     //---------------------------------------------------------------------------------------------
     function _process_args(args){
         /*
@@ -157,7 +194,11 @@ var Jassino = (function() {
         _nsadd(data, trait)
 
         if (data.straits) _mix(trait, data.straits); //Super Traits
-        extend(trait, data.body, true)
+        
+        _check_and_make_props(trait, data.body)
+        
+        _extend(trait, data.body)
+        
         return trait;
     }
 
@@ -186,6 +227,7 @@ var Jassino = (function() {
         //------------------------------ creating constructor at declaration time -------------------------------------
         if ( ! saved_ctor)
             //"default (implicit) constructor", handles also _:[], _:null etc
+            //it is subject to discussion if default constructor should do super calls
             klass = SuperClass ? function(){SuperClass.apply(this, arguments)} : function(){}
             
         else if (typeof saved_ctor === FUN)
@@ -206,7 +248,7 @@ var Jassino = (function() {
                         this[saved_ctor[i]] = arguments[i]
                 }
             }else{
-                //works also for [[],[]] - explicit super call triggering without parameters
+                //works also for [[],[]] that is equivalent for default constructor
                 if ( ! SuperClass) throw new J.ConstructorError(saved_ctor,
                         "Shortcut _: [[super_arg1,...], [arg1,...]] assumes SuperClass")
                 var base_of_ctor_args = saved_ctor[0].length,
@@ -222,21 +264,6 @@ var Jassino = (function() {
         
         _nsadd(data, klass)
 
-        //------------------------------ class self-reference and name ----------------------------------------------
-        //class methods will be able to 
-        //reference the class (constructor function) as this.CLS, this - constructor function object,
-        //which contains class members exactly
-        klass[_CLASS] = klass
-        klass[_CLASS_NAME] = data.name
-
-        //--------------------------- extending class with class/static members -------------------------------------
-        //add "class" members from _CLS variable to constructor(class) object, 
-        // so accessing like class.static_member()
-        if (body[_CLASS_MEMBERS]) {                      //Class Members specified in body
-            extend(klass, body[_CLASS_MEMBERS], true);
-            delete body[_CLASS_MEMBERS];
-        }
-
         //------------------------------------- super class handling -----------------------------------------------
         if (SuperClass) {
             var SNAME = body[_SUPER_CLASS_NAME] || SuperClass[_CLASS_NAME]; //superclass name, body variant works for non-jassino superclasses
@@ -251,19 +278,16 @@ var Jassino = (function() {
 
             klass.prototype.constructor = klass;
             
-            //----------------------- class-level super reference -------------
-            klass[_SUPER_CLASS] = SuperClass;
-            klass[_SUPER_CLASS_NAME] = SNAME
-
             //----------------------- this.Super$.blabla(): reference to super object ------------- 
             klass.prototype[SNAME + _SUPER_OBJ_SUFFIX] = SuperClass.prototype
 
             //----------------- instance-level super reference -> super constructor -------------
-            //this.Kls(args), this points to instance
-            //WARNING!!! name $Kls rather then 'super' or so is essential, because
-            //general names like super work incorrectly in prototype chain with several levels of inheritance
-            //we need to point exactly to what class super should belong
-            //example (from http://myjs.fr/my-class/):
+            //this.SuperClassName(args), this points to instance
+            //WARNING!!! picking name         $SuperClassName        rather then 'super' or so is essential,
+            //general names work incorrectly in prototype chain with several levels of inheritance
+            //we need to point exactly to the class super should belong to
+            
+            //Counter-example (from http://myjs.fr/my-class/):
             //function Person(name) {
             //    this.name = name;
             //};
@@ -286,8 +310,32 @@ var Jassino = (function() {
             }
 
             //-------------- Class Members inherited from SuperClass --------------------------------------
-            extend(klass, SuperClass, false);   
+            _extend(klass, SuperClass);
+
+            //----------------------- class-level super reference -------------
+            //WARNING! this should go AFTER _extend() with SuperClass
+            klass[_SUPER_CLASS] = SuperClass;
+            klass[_SUPER_CLASS_NAME] = SNAME
+
         }
+
+        //------------------------------ class name ----------------------------------------------
+        //WARNING!     do this AFTER extending with SuperClass, otherwise class variables are overriden
+        //class methods will be able to 
+        //reference the class (constructor function) as this.CLS, this - constructor function object,
+        //which contains class members exactly
+        klass[_CLASS_NAME] = data.name
+
+        //------------------------------ extending class with class/static members, -------------------------------------
+        //add "class" members from _CLS variable to constructor(class) object, 
+        // so accessing like ClassA.static_member()
+        //will override Super Class class members with the same name
+        
+        if (body[_CLASS_MEMBERS]) {                      //Class Members specified in body
+            _extend(klass, body[_CLASS_MEMBERS]);
+            delete body[_CLASS_MEMBERS];
+        }
+
 
         //--------------------------- traits handling -----------------------------------------------
         //mix all members from traits
@@ -295,10 +343,13 @@ var Jassino = (function() {
             _mix(klass.prototype, data.straits)
         }
 
+        //--------------------------- making up instance properties prototypes --------------------------------------
+        _check_and_make_props(klass.prototype, body)
+
         //--------------------------- extending prototype with instance members --------------------------------------
         //this call goes last to provide correct overriding order: if any trait has the same method, it will be hidden
         //class methods do not matter here as resist on constructor object rather then instance object
-        extend(klass.prototype, body, true) 
+        _extend(klass.prototype, body) 
 
         return klass;
     }
