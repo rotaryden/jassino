@@ -18,7 +18,7 @@ Why yet another one? Because of specific syntax sugar, to make things just handy
 * Any level of inheritance allowed (up to your stack size :), tested up to 2000 ancestors
 * Compatible with prototype-bases pseudo classes - you may inherit Jassino class from native one
 * will work on oldest browsers, no dependencies
-* less then 3Kb minified !
+* less then 4Kb minified !
 
 [Detailed capabilities of the library may be seen from unit-test examples](https://github.com/altitudebreath/jassino/blob/master/test/test.js)  
 

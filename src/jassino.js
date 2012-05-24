@@ -29,8 +29,10 @@ var Jassino = (function() {
         _SUPER_CLASS_NAME  = '$NAME',    // reference to SuperClass name in class -OR- body 
                                          // (in case of inheriting from usual function)
 
-        _CLASS_MEMBERS     = 'CLS',      //class (static) members definition in body
-        _PROPERTIES        = 'PROP',     //properties in Class/Trait body
+        _PREFIX_LENGTH     = 3,
+        _CLASS_MEMBER_PREF = "c__",
+        _PROPERTY_PREF     = "p__",
+        
         _PROP_FIELD_GET_PREF = 'get_',   //prefix attached to internal property field, so prop() <-get/set-> _PROP_prop
         _PROP_FIELD_SET_PREF = 'set_',   //prefix attached to internal property field, so prop() <-get/set-> _PROP_prop
 
@@ -43,9 +45,10 @@ var Jassino = (function() {
     var J = {
         NS: {}, //default namespace
 
-        DuplicationError: _make_exc(),
-        ArgumentsError: _make_exc(),
-        ConstructorError: _make_exc(),
+        DuplicationError: _make_exc("Duplication"),
+        ArgumentsError: _make_exc("Arguments"),
+        ConstructorError: _make_exc("Constructor"),
+        MembersError: _make_exc("Members"),
 
         is_array: is_array
     }
@@ -64,7 +67,7 @@ var Jassino = (function() {
     }
     
     
-    function _make_exc(){ return function(data, message){this.message = (message || "DATA:") + " ==> " +  dump(data)} }
+    function _make_exc(msg){ return function(data, message){this.message = (msg ? msg + ": " : "") + (message || "DATA:") + " ==> " +  dump(data)} }
 
     
     function slice(arr, begin, end){return Array.prototype.slice.call(arr, begin, end)}
@@ -94,24 +97,32 @@ var Jassino = (function() {
     }
 
     
-    function _check_and_make_props(obj, body){
-        if (body[_PROPERTIES]) {                      //Class Members specified in body
-            //wrappers to bypass one-time closure creation inside a cycle
-            var make_get = function(field_name){   
-                return function(){ return this[field_name] }
-            }
-            var make_set = function(field_name){   
-                return function(val){ this[field_name] = val }
-            }
-            for (var field_name in body[_PROPERTIES]){
+    function _check_prefixes_and_extend(trait_or_proto, body, class_obj){
+        //wrapper to bypass one-time closure creation inside a cycle
+        var make_it = function(field_name){
+            _inner_extend(trait_or_proto, function(){ return this[field_name] }, _PROP_FIELD_GET_PREF + field_name)
+            _inner_extend(trait_or_proto,  function(val){ this[field_name] = val }, _PROP_FIELD_SET_PREF + field_name)
+        }
+        for (var field_name in body) {                      //Class Members specified in body
+            var prefix = field_name.slice(0, _PREFIX_LENGTH)
+            
+            if (prefix.toLowerCase() === _CLASS_MEMBER_PREF){
+                if ( ! class_obj)
+                    throw new J.MembersError(body, "Trait cannot have class (static) members")
+                _inner_extend(class_obj, body[field_name], field_name.slice(_PREFIX_LENGTH));
+                
+            }else if (prefix.toLowerCase() === _PROPERTY_PREF){
+                var pure_name = field_name.slice(_PREFIX_LENGTH)
+                
                 //put initial value into instance prototype/trait
-                _inner_extend(obj, body[_PROPERTIES][field_name], field_name)
-
+                _inner_extend(trait_or_proto, body[field_name], pure_name)
+                
                 //put getter/setter into prototype/trait
-                _inner_extend(obj, make_get(field_name), _PROP_FIELD_GET_PREF + field_name)
-                _inner_extend(obj, make_set(field_name), _PROP_FIELD_SET_PREF + field_name)
+                make_it(pure_name)
+            
+            }else if (field_name !== _CONSTRUCTOR && field_name !== _SUPER_CLASS_NAME){
+                _inner_extend(trait_or_proto, body[field_name], field_name)
             }
-            delete body[_PROPERTIES];
         }
         
     }
@@ -133,17 +144,18 @@ var Jassino = (function() {
             name_pos = 0,
             len = args.length
         
-        if (len < 2) throw new AE(args)
+        if (len < 2) throw new AE(args, "Specify at least name and body")
         
         //if first parameter an object => it should be namespace
         if (args[0] !== null && //null is object
-            typeof args[0] === OBJ && ! is_array(args[0])){ 
+            typeof args[0] === OBJ && ! is_array(args[0])
+        ){ 
             name_pos++
             ns = args[0]
         }else if(args[0] && typeof args[0] === STR){
             ns = J.NS
         }else{
-            throw new AE(args)
+            throw new AE(args, "First argument should be namespace or name")
         }
         
         var data = {
@@ -154,9 +166,10 @@ var Jassino = (function() {
             //number of parameters between name and body
             var_par_num = len - (name_pos + 1) - 1
 
-        if (! data.name || typeof data.name !== STR) throw new AE(data)
+        if (! data.name || typeof data.name !== STR) throw new AE(data, "Invalid name")
                 
         if (var_par_num > 0){
+            var errmsg = "Parameters between name and body: 1st - class, 2nd - traits array 1..n || one of them"
             var par_after_name = args[name_pos + 1]
 
             if (var_par_num == 2){ //superclass and traits
@@ -165,18 +178,19 @@ var Jassino = (function() {
                     data.sclass = par_after_name
                     data.straits = traits
                 }else{
-                    throw new AE(data)
+                    throw new AE(data, errmsg)
                 }
-            }else{ //super class OR traits
+            }else if(var_par_num == 1){ //super class OR traits
                 if (typeof par_after_name === FUN) {
                     data.sclass = par_after_name
                 }else if (is_array(par_after_name)){
                     data.straits = par_after_name
                 }else{
-                    throw new AE(data)
+                    throw new AE(data, errmsg)
                 }
-            } //else only body specified
-        }
+            }else
+                throw new AE(data, "too many parameters")
+        }//else only body specified
         return data
     }
 
@@ -194,10 +208,8 @@ var Jassino = (function() {
         _nsadd(data, trait)
 
         if (data.straits) _mix(trait, data.straits); //Super Traits
-        
-        _check_and_make_props(trait, data.body)
-        
-        _extend(trait, data.body)
+
+        _check_prefixes_and_extend(trait, data.body)
         
         return trait;
     }
@@ -222,7 +234,6 @@ var Jassino = (function() {
 
         var saved_ctor = body[_CONSTRUCTOR], //user's custom constructor (optional)
             klass;
-        delete body[_CONSTRUCTOR]
 
         //------------------------------ creating constructor at declaration time -------------------------------------
         if ( ! saved_ctor)
@@ -232,8 +243,14 @@ var Jassino = (function() {
             
         else if (typeof saved_ctor === FUN)
             //---- full explicit constructor
-            // super constructor call (if needed) must be done inside as this.SuperClassName()
-            klass = function(){saved_ctor.apply(this, arguments)}
+            // super constructor call (if needed) must be done as this.SuperClassName()
+            klass = function(){
+                try{
+                    saved_ctor.apply(this, arguments)
+                }catch(e){
+                    throw new J.ConstructorError(e.message, 'Probably recursive call from inside of constructor to itself (Did you meant super call?)')
+                }
+            }
         
         else if (is_array(saved_ctor)){
             //---- Shortcut form SPEC: <[[<'$super_arg', ....>],> ['constructor_arg', ....]<]>
@@ -242,7 +259,7 @@ var Jassino = (function() {
             //saved_ctor[0] - super agrs, [1] - constructor args
             if (! is_array(saved_ctor[0])){
                 if (SuperClass) throw new J.ConstructorError(saved_ctor, 
-                    "Shortcut _: [arg,...] assumes NO SuperClass")
+                    "_: [arg,...] assumes NO SuperClass")
                 klass = function(){
                     for (var i=0; i < saved_ctor.length; i++) 
                         this[saved_ctor[i]] = arguments[i]
@@ -250,7 +267,7 @@ var Jassino = (function() {
             }else{
                 //works also for [[],[]] that is equivalent for default constructor
                 if ( ! SuperClass) throw new J.ConstructorError(saved_ctor,
-                        "Shortcut _: [[super_arg1,...], [arg1,...]] assumes SuperClass")
+                        "_: [[super_arg1,...], [arg1,...]] assumes SuperClass")
                 var base_of_ctor_args = saved_ctor[0].length,
                     ctor_args = saved_ctor[1]
                 klass = function(){
@@ -260,14 +277,13 @@ var Jassino = (function() {
                 }
             }
         }else
-            throw new J.ConstructorError(saved_ctor)
+            throw new J.ConstructorError(saved_ctor, "Invalid constructor")
         
         _nsadd(data, klass)
 
         //------------------------------------- super class handling -----------------------------------------------
         if (SuperClass) {
             var SNAME = body[_SUPER_CLASS_NAME] || SuperClass[_CLASS_NAME]; //superclass name, body variant works for non-jassino superclasses
-            delete body[_SUPER_CLASS_NAME]
 
             //clone SuperClass prototype chain so protecting SuperClass instance object itself 
             // from overriding in childs => this also guarantees of working calls
@@ -319,37 +335,28 @@ var Jassino = (function() {
 
         }
 
-        //------------------------------ class name ----------------------------------------------
-        //WARNING!     do this AFTER extending with SuperClass, otherwise class variables are overriden
-        //class methods will be able to 
-        //reference the class (constructor function) as this.CLS, this - constructor function object,
-        //which contains class members exactly
-        klass[_CLASS_NAME] = data.name
-
-        //------------------------------ extending class with class/static members, -------------------------------------
-        //add "class" members from _CLS variable to constructor(class) object, 
-        // so accessing like ClassA.static_member()
-        //will override Super Class class members with the same name
-        
-        if (body[_CLASS_MEMBERS]) {                      //Class Members specified in body
-            _extend(klass, body[_CLASS_MEMBERS]);
-            delete body[_CLASS_MEMBERS];
-        }
-
-
         //--------------------------- traits handling -----------------------------------------------
         //mix all members from traits
         if (data.straits) {
             _mix(klass.prototype, data.straits)
         }
 
-        //--------------------------- making up instance properties prototypes --------------------------------------
-        _check_and_make_props(klass.prototype, body)
-
-        //--------------------------- extending prototype with instance members --------------------------------------
-        //this call goes last to provide correct overriding order: if any trait has the same method, it will be hidden
+        //------------------------------ 1) extending class with class/static members, ------------------------------
+        //add "class" members from _CLS variable to constructor(class) object, 
+        // so accessing like ClassA.static_member()
+        //will override Super Class class members with the same name
+        //--------------------------- 2) making up properties --------------------------------------
+        //--------------------------- 3) extending prototype with instance members --------------------------------------
+        //this goes last to provide correct overriding order: if any trait has the same method, it will be hidden
         //class methods do not matter here as resist on constructor object rather then instance object
-        _extend(klass.prototype, body) 
+        _check_prefixes_and_extend(klass.prototype, body, klass)
+
+        //------------------------------ class name ----------------------------------------------
+        //WARNING!     do this AFTER extending with SuperClass, otherwise class variables are overriden
+        //class methods will be able to 
+        //reference the class (constructor function) as this.CLS, this - constructor function object,
+        //which contains class members exactly
+        klass[_CLASS_NAME] = data.name
 
         return klass;
     }

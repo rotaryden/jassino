@@ -93,6 +93,172 @@ test("Members setup", 1, function() {
 });
 
 //========================================================================================================================
+module("Basic Class definitions and operations", default_up_down);
+
+//-------------------------------------------------------------------------------------------------------------------
+test("Object members should not become class members", 2, function() {
+    Class('T', {
+        a: 5,
+        f: function(){return this.a}
+    })
+
+    ste(ns.T.f, undefined)
+    ste(ns.T.a, undefined)
+
+});
+
+//-------------------------------------------------------------------------------------------------------------------
+test("Simple instantiation with implicit constructor", 1, function() {
+    Class('T', {
+        a: 5,
+        f: function(){return this.a}
+    })
+    var t = new ns.T()
+
+    eq(t.f(), 5, 'member call')
+});
+
+//========================================================================================================================
+module("Class constructors", default_up_down);
+
+//-------------------------------------------------------------------------------------------------------------------
+test("Explicit constructor", 1, function() {
+    Class('T', {
+        _: function(num){this.num = num},
+        a: "zz",
+        f: function(){return this.a + this.num}
+    })
+
+    var t = new ns.T("xx")
+
+    ste(t.f(), "zzxx", 'member call test')
+});
+
+//-------------------------------------------------------------------------------------------------------------------
+test("Implicit constructor", 1, function() {
+    Class('A', {
+        _:function(ancestor_name){
+            this.a = "ancestor"
+            this.b = ancestor_name
+        }
+    })
+
+    Class('T', ns.A, {
+        res: function(){return this.a + " " + this.b}
+    })
+
+    var t = new ns.T("Sam", "Guy")
+
+    ste(t.res(), "ancestor Sam", 'work properly with super classes, ignores extra parameters')
+});
+
+
+//-------------------------------------------------------------------------------------------------------------------
+test("Explicit shortcut - no SuperClass", 3, function() {
+
+    Class('T', {
+        _: ['country', 'flag_color']
+    })
+
+    var t = new ns.T("China", "Red")
+
+    ok(true, dump(t))
+    ste(t.country, "China", 'initializes parameter')
+    ste(t.flag_color, "Red", 'initializes parameter')
+});
+
+
+//-------------------------------------------------------------------------------------------------------------------
+test("Explicit shortcut with super args but no SuperClass (Error)", function() {
+    rs(function(){
+            Class('T', {
+                _: [[], ['country', 'flag_color']]
+            })
+        },
+        Jassino.ConstructorError,
+        "not allowed"
+    )
+    rs(function(){
+            Class('T', {
+                _: [['blabla'], []]
+            })
+        },
+        Jassino.ConstructorError,
+        "not allowed"
+    )
+    rs(function(){
+            Class('T', {
+                _: [[], []]
+            })
+        },
+        Jassino.ConstructorError,
+        "not allowed"
+    )
+});
+
+//-------------------------------------------------------------------------------------------------------------------
+test("Explicit shortcut constructor with super classes", 1, function() {
+
+    Class('A', {
+        _:function(ancestor_name){
+            this.a = "ancestor"
+            this.a1 = ancestor_name
+        }
+    })
+
+    Class('B', ns.A, {
+        _: [['ancestor NAME'], ['b']]    //first array is only for readability, only its size is used 
+    })
+
+    Class('T', ns.B, {
+        _:[['anc', 'b'], ['c']],
+        res: function(){return this.a + " " + this.a1 + " " + this.b + " " + this.c}
+    })
+
+    var t = new ns.T("Sam", "b", "c")
+
+    ste(t.res(), "ancestor Sam b c", 'work properly with super classes, ignores extra parameters')
+});
+
+
+//========================================================================================================================
+module("Class multiple instantiation consistency", default_up_down);
+
+test("Simple test", function() {
+    Class('A', {
+        _: ['x', 'y'],
+        C__z: 78,
+        P__w: 98,
+        a: 4,
+        af: function(){return this.a + this.x + this.y}
+    })
+
+    var a = new ns.A(1, 2)
+    var b = new ns.A(8, 16)
+    var c = new ns.A(80, 500)  //just for case
+
+    ste(a.a, 4)
+    ste(b.a, 4)
+    
+    ste(a.af(), 1 + 2 + 4)
+    ste(b.af(), 8 + 16 + 4)
+
+    ste(ns.A.z, 78)
+    
+    ste(a.get_w(), 98)
+    a.set_w(100)
+    ste(a.get_w(), 100)
+
+    ste(b.get_w(), 98)
+    b.set_w(110)
+    ste(b.get_w(), 110)
+
+    ste(a.get_w(), 100)
+
+
+});
+
+//========================================================================================================================
 module("Trait inheritance", default_up_down);
 
 
@@ -183,122 +349,6 @@ test("Inheritance transitive law", 4, function() {
     eq(ns.T.ovf(), 'T', 'Overriden ovf() -> T.ovf()')
     eq(ns.T.anc_ovf(), 'anc_B', 'Inheritance override stack: last override happened in B')
 });
-//========================================================================================================================
-//================================================== Classes =============================================================
-//========================================================================================================================
-//========================================================================================================================
-module("Basic Class definitions and operations", default_up_down);
-
-//-------------------------------------------------------------------------------------------------------------------
-test("Object members should not become class members", 2, function() {
-    Class('T', {
-        a: 5,
-        f: function(){return this.a}
-    })
-    
-    ste(ns.T.f, undefined)
-    ste(ns.T.a, undefined)
-
-});
-
-//-------------------------------------------------------------------------------------------------------------------
-test("Simple instantiation with implicit constructor", 1, function() {
-    Class('T', {
-        a: 5,
-        f: function(){return this.a}
-    })
-	var t = new ns.T()
-    
-    eq(t.f(), 5, 'member call')
-});
-
-//========================================================================================================================
-module("Class constructors", default_up_down);
-
-//-------------------------------------------------------------------------------------------------------------------
-test("Explicit constructor", 1, function() {
-    Class('T', {
-        _: function(num){this.num = num},
-        a: "zz",
-        f: function(){return this.a + this.num}
-    })
-
-    var t = new ns.T("xx")
-
-    ste(t.f(), "zzxx", 'member call test')
-});
-
-//-------------------------------------------------------------------------------------------------------------------
-test("Implicit constructor", 1, function() {
-    Class('A', {
-        _:function(ancestor_name){
-            this.a = "ancestor"
-            this.b = ancestor_name
-        }
-    })
-    
-    Class('T', ns.A, {
-        res: function(){return this.a + " " + this.b}
-    })
-
-    var t = new ns.T("Sam", "Guy")
-
-    ste(t.res(), "ancestor Sam", 'work properly with super classes, ignores extra parameters')
-});
-
-
-//-------------------------------------------------------------------------------------------------------------------
-test("Explicit shortcut - no SuperClass", 3, function() {
-    
-    Class('T', {
-        _: ['country', 'flag_color']
-    })
-
-    var t = new ns.T("China", "Red")
- 
-    ok(true, dump(t))
-    ste(t.country, "China", 'initializes parameter')
-    ste(t.flag_color, "Red", 'initializes parameter')
-});
-
-
-//-------------------------------------------------------------------------------------------------------------------
-test("Explicit shortcut with super args but no SuperClass (Error)", 1, function() {
-    rs(function(){
-        Class('T', {
-            _: [[], ['country', 'flag_color']]
-        })
-        },
-        Jassino.ConstructorError,
-        "not allowed"
-    )
-});
-
-//-------------------------------------------------------------------------------------------------------------------
-test("Explicit shortcut constructor with super classes", 1, function() {
-    
-    Class('A', {
-        _:function(ancestor_name){
-            this.a = "ancestor"
-            this.a1 = ancestor_name
-        }
-    })
-
-    Class('B', ns.A, {
-        _: [['ancestor NAME'], ['b']]    //first array is only for readability, only its size is used 
-    })
-    
-    Class('T', ns.B, {
-        _:[['anc', 'b'], ['c']],
-        res: function(){return this.a + " " + this.a1 + " " + this.b + " " + this.c}
-    })
-
-    var t = new ns.T("Sam", "b", "c")
-
-    ste(t.res(), "ancestor Sam b c", 'work properly with super classes, ignores extra parameters')
-});
-
-
 //========================================================================================================================
 module("Classes mixed-in with Traits", default_up_down);
 
@@ -476,12 +526,10 @@ test("basic test", function() {
         a: 10,
         b: function(){ return "Hello!"},
         
-        CLS:{
-            a: 8,
-            b: function(){ return ns.T.a + 12},
-            c: null,
-            d: undefined
-        }
+        c__a: 8,
+        c__b: function(){ return ns.T.a + 12},
+        C__c: null,            //prefix is key insensitive
+        C__d: undefined
     })
 
     ste(ns.T.a, 8, 'static variable')
@@ -507,12 +555,10 @@ module("Getters / Setters auto generation", default_up_down);
 
 test("basic test in Class", function() {
     Class('T', {
-        PROP:{
-            a: 8,
-            b: "sss",
-            c: null,
-            d: undefined
-        }
+        p__a: 8,
+        p__b: "sss",
+        P__c: null,                    //prefix is key insensitive
+        P__d: undefined
     })
 
     var t = new ns.T()
@@ -541,12 +587,10 @@ test("basic test in Class", function() {
 
 test("test for a Trait mixed into class + constructor", function() {
     Trait('T', {
-        PROP:{
-            a: 8,
-            b: "sss",
-            c: null,
-            d: undefined
-        }
+        p__a: 8,
+        p__b: "sss",
+        p__c: null,
+        p__d: undefined
     })
 
     Class('C', [ns.T], {
@@ -618,7 +662,7 @@ test("Rewritten example from my-class (http://myjs.fr/my-class/) - NO INFINITE R
 //========================================================================================================================
 module("COMPLEX EXAMPLE", default_up_down);
 
-test("Bee Colony Simplified [WIP]", function() {
+test("Bees Simplified [not finished]", function() {
     /***************************************************************************************
      * Full featured Example
      *************************************************************************************/
@@ -626,25 +670,24 @@ test("Bee Colony Simplified [WIP]", function() {
     //convenient variables
     var Class = Jassino.Class, 
         Trait = Jassino.Trait,
-        PROPERTY = Jassino.PROPERTY,
         NS = Jassino.NS
 
     //Namespace. It may contain members as well
-    var Insects = {}
+    var Bees = {}
     
     //---------------------------------------------------------------
-    Trait('Move', {          //this will go to default namespace - Jassino.NS
-        total_distance: PROPERTY,
+    Trait('Movable', {          //this will go to default namespace - Jassino.NS
+        p__total_distance: 0,
         location: {x:0, y:0},  //var members also possible in traits, 
         move_to: function(loc){
             var t = this
-            t.total_distance += Math.sqrt( Math.pow(loc.x - t.location.x, 2)
-                + Math.pow(loc.y - t.location.y, 2) )
+            t.set_total_distance(t.get_total_distance() + Math.sqrt( Math.pow(loc.x - t.location.x, 2) 
+                + Math.pow(loc.y - t.location.y, 2) ))
             t.location = loc
         }
     })
 
-    Trait(Insects, 'Fly', [Insects.Move], {     //explicit namespace
+    Trait(Bees, 'Flyable', [Bees.Moveable], {     //explicit namespace
         flight_hours: 0,
         fly_to: function(loc){ 
             this.move_to(loc)
@@ -652,16 +695,100 @@ test("Bee Colony Simplified [WIP]", function() {
         }
     })
 
-    Trait('Work', {          //this will go to default namespace - Jassino.NS
+    Trait('Workable', {          //this will go to default namespace - Jassino.NS
         work_on: function(place){return "Working on " + place.toString()}
     })
 
     //---------------------------------------------------------------
-    Class('BeeColony', {
+    Class('Bee', {             
+        _:['name', 'lifespan']
+    })
+
+    Class(Bees, 'FemaleBee', NS.Bee, {
+        _: function(name){         //Explicit constructor
+            this.Bee('F')          //super constructor call
+            this.name=name
+        }  //constructor
+    })
+
+    Class(Bees, 'MaleBee', NS.Bee, [Bees.Flyable], {
+        _: [['name','lifespan'], []]
+    })
+
+    Class(Bees, 'Queen', Bees.FemaleBee, {               
+        _: function(name){         //Full form of constructor
+            this.FemaleBee('F')          //super constructor call
+            this.name=name
+        }  //constructor
+    })
+    
+    Class(Bees, 'Worker', Bees.FemaleBee, [NS.Workable, Bees.Flyable], {
+        //Sort Constructor form, means: 
+        // On declaration time, generate constructor accepting 2 parameters,
+        // first parameter pass to super constructor
+        // second parameter write to this.name 
+        _: [['gender'], ['name']],
+        get_productiveness: function(){ return this.productiveness }
+    })
+    //----------------------------------------------------------------------------------------------
+    var Places = {}
+
+    function Place(visitors_capacity){                //native prototype-based class         
+        this.visitors_capacity = visitors_capacity
+        this.visitors = []
+    }
+    Place.prototype.add_visitor = function(vis){
+        if (this.visitors.length < this.visitors_capacity){
+            this.visitors_capacity.push(vis)
+            return true
+        }else{
+            return false
+        }
+    }
+    Place.prototype.remove_visitor = function(vis){
+        if (this.visitors.length < this.visitors_capacity){
+            this.visitors_capacity.push(vis)
+            return true
+        }else{
+            return false
+        }
+    }
+
+    Class(Places, 'Plant', Place, {
+        $NAME: 'Place'  //inheriting from native pseudo class requires its explicit name
+    })
+
+    Class(Places, 'Flower', Places.Plant, {
+        nectar: 5,
+        full_amount: 5,
+        restore_point: -5,
+        get_nectar: function(){ 
+            var t = this
+            if (t.nectar < t.restore_point){
+                t.nectar = t.full_amount
+            }
+            this.nectar > 0 ? (this.nectar--, 1) : 0 }
+    })
+
+
+    Class(Places, 'Weed', Places.Plant, {
+        nectar: 0,
+        get_nectar: function(){ this.nectar ? (this.nectar--, 1) : 0 }
+    })
+
+    //----------------------------------------------------------------------------------------------
+    Class('BeeKeeper', [NS.Workable], {
+        
+    })
+
+    //---------------------------------------------------------------
+
+    Class(Places, 'Hive', Place, [NS.Moveable], {
+        $NAME: 'Place',
         //Constructor shortcut (SuperClass-less form)
         //means: take first argument from constructor and place it into this.bees
-        _: ['bees'],
-        
+        _: [['visitors capacity'],['bees']],
+
         get_most_productive: function(){
             if ( ! this.bees) return null
             var most = bees[0]
@@ -673,61 +800,12 @@ test("Bee Colony Simplified [WIP]", function() {
         }
     })
 
-    //---------------------------------------------------------------
-    function Bee(name, lifespan){             //native pseudo class         
-        this.name = name
-        this.lifespan = lifespan
-    }
-    
-    Bee.prototype.get_productiveness = function(){ return this.productiveness }
-
-    Class(Insects, 'FemaleBee', Bee, {
-        $NAME: 'Bee',                  //inheriting from native pseudo class requires its explicit name
-        _: function(name){         //Explicit constructor
-            this.FemaleBee('F')          //super constructor call
-            this.name=name
-        }  //constructor
-    })
-
-    Class(Insects, 'MaleBee', Bee, {
-        $NAME: 'Bee',                 
-        _: [['name','lifespan'], []]
-    })
-
-    Class(Insects, 'Queen', Insects.FemaleBee, {               
-        _: function(name){         //Full form of constructor
-            this.FemaleBee('F')          //super constructor call
-            this.name=name
-        }  //constructor
-    })
-    
-    Class('Worker', Insects.FemaleBee, [NS.Work, Insects.Fly], {
-        $NAME: 'Bee',
-        //Sort Constructor form form. 
-        // This means: 
-        // On declaration time, generate constructor accepting 2 parameters,
-        // first parameter pass to super constructor
-        // second parameter write to this.name 
-        _: [['gender'], ['name']]
-    })
-    //----------------------------------------------------------------------------------------------
-    var Places = {
-        namespace_name: 'Plants',
-        moto: "We're growing!"
-    }
-
-    Class(Places, 'Place', {
-        
-    })
-    Class(Places, 'Plant', {})
-    
-    Class(Places, 'Hive', {})
-    
     //***************************************************************************
-    var I = Insects, P = Places
-    var colony = I.BeeColony(I.Queen(''))
-    var hive = Hive('Hive 007')
-    bee.perform_gathering_fly(place)
+    var hive = new Places.Hive(20, //20 visitors max
+                      [new Bees.Queen('')])
+    //hive.get_most_productive().gather(place)
+    
+    eq(1,1, "stub")
 })
 
 
