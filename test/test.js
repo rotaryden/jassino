@@ -260,11 +260,24 @@ test("Multiple instantiation test", function() {
 
 test("Forgotten 'new'", function() {
     Class('A', {})
+    Class('B', ns.A, {})
+    Class('C', {_:function(x){}})
+    Class('D', ns.C, {
+        _:[['x'],['a']]
+    })
+    Class('E', {_:['a', 'b']})
 
     rs(function(){ns.A()}, Jassino.InstantiationError, "Instantiation error raised")
+    rs(function(){ns.B()}, Jassino.InstantiationError, "Instantiation error raised 2")
+    rs(function(){ns.C(5)}, Jassino.InstantiationError, "Instantiation error raised 3")
+    rs(function(){ns.D(6,7)}, Jassino.InstantiationError, "Instantiation error raised 4")
+    rs(function(){ns.E(8,9)}, Jassino.InstantiationError, "Instantiation error raised 5")
+
     new ns.A()
-    rs(function(){ns.A()}, Jassino.InstantiationError, "Instantiation error raised 2")
-    new ns.A()
+    new ns.B()
+    new ns.C(5)
+    new ns.D(6,7)
+    new ns.E(8,9)
 
 });
 
