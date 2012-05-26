@@ -19,7 +19,7 @@ var Jassino = (function() {
     * body - definition body object provided for Class or Trait
     * super object - Super class prototype
     */
-    //--------------------- you may change these parameters to your own symbols ----------------------
+    //--------------------------- you may change these parameters to your own --------------------------------------
     var _CONSTRUCTOR       = '_',        //constructor function in body
         _CLASS_NAME        = '_NAME',    //class name on the class itself
 
@@ -36,14 +36,9 @@ var Jassino = (function() {
         _PROP_FIELD_GET_PREF = 'get_',   //prefix attached to internal property field, so prop() <-get/set-> _PROP_prop
         _PROP_FIELD_SET_PREF = 'set_',   //prefix attached to internal property field, so prop() <-get/set-> _PROP_prop
 
-        VALID_INSTANCE_MARKER = "_jassino_",
+        _VALID_INSTANCE_MARKER = "_jassino_"
         
-        UNDEF = "undefined",
-        FUN = "function",
-        STR = "string",
-        OBJ = 'object'
-    
-    //------------------------------------------------------------------------------------------------
+    //--------------------------------------------------------------------------------------------------------------
     var J = {
         NS: {}, //default namespace
 
@@ -54,7 +49,12 @@ var Jassino = (function() {
         MembersError: _make_exc("Members"),
 
         is_array: is_array
-    }
+        },
+        UNDEF = "undefined",
+        FUN = "function",
+        STR = "string",
+        OBJ = 'object'
+
 
     //==============================================================================================
     function dump(obj){
@@ -247,17 +247,17 @@ var Jassino = (function() {
             //it is subject to discussion if default constructor should do super calls
             klass = SuperClass ? 
                 function(){
-                    if (! this[VALID_INSTANCE_MARKER]) _inst_err()          //condition shifted out of helper function for performance
+                    if (! this[_VALID_INSTANCE_MARKER]) _inst_err()          //condition shifted out of helper function for performance
                     SuperClass.apply(this, arguments)
                 } 
                 : 
-                function(){if (! this[VALID_INSTANCE_MARKER]) _inst_err()}
+                function(){if (! this[_VALID_INSTANCE_MARKER]) _inst_err()}
             
         else if (typeof saved_ctor === FUN)
             //---- full explicit constructor
             // super constructor call (if needed) must be done as this.SuperClassName()
             klass = function(){
-                if (! this[VALID_INSTANCE_MARKER]) _inst_err()
+                if (! this[_VALID_INSTANCE_MARKER]) _inst_err()
                 try{
                     saved_ctor.apply(this, arguments)
                 }catch(e){
@@ -274,7 +274,7 @@ var Jassino = (function() {
                 if (SuperClass) throw new J.ConstructorError(saved_ctor, 
                     "_: [arg,...] assumes NO SuperClass")
                 klass = function(){
-                    if (! this[VALID_INSTANCE_MARKER]) _inst_err()
+                    if (! this[_VALID_INSTANCE_MARKER]) _inst_err()
                     for (var i=0; i < saved_ctor.length; i++) 
                         this[saved_ctor[i]] = arguments[i]
                 }
@@ -285,7 +285,7 @@ var Jassino = (function() {
                 var base_of_ctor_args = saved_ctor[0].length,
                     ctor_args = saved_ctor[1]
                 klass = function(){
-                    if (! this[VALID_INSTANCE_MARKER]) _inst_err()
+                    if (! this[_VALID_INSTANCE_MARKER]) _inst_err()
                     SuperClass.apply(this, slice(arguments, 0, base_of_ctor_args))
                     for (var i=0; i < ctor_args.length; i++)
                         this[ctor_args[i]] = arguments[base_of_ctor_args + i]
@@ -374,7 +374,7 @@ var Jassino = (function() {
         klass[_CLASS_NAME] = data.name
 
         //--------------------static marker, pointing that object is in the jassino chain----------------------
-        klass.prototype[VALID_INSTANCE_MARKER] = true   
+        klass.prototype[_VALID_INSTANCE_MARKER] = true   
         
         return klass;
     }
