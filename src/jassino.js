@@ -36,6 +36,8 @@ var Jassino = (function() {
         _PROP_FIELD_GET_PREF = 'get_',   //prefix attached to internal property field, so prop() <-get/set-> _PROP_prop
         _PROP_FIELD_SET_PREF = 'set_',   //prefix attached to internal property field, so prop() <-get/set-> _PROP_prop
 
+        VALID_INSTANCE_MARKER = "_jassino_",
+        
         UNDEF = "undefined",
         FUN = "function",
         STR = "string",
@@ -48,6 +50,7 @@ var Jassino = (function() {
         DuplicationError: _make_exc("Duplication"),
         ArgumentsError: _make_exc("Arguments"),
         ConstructorError: _make_exc("Constructor"),
+        InstantiationError: _make_exc("Instantiation"),
         MembersError: _make_exc("Members"),
 
         is_array: is_array
@@ -233,18 +236,28 @@ var Jassino = (function() {
             SuperClass = data.sclass
 
         var saved_ctor = body[_CONSTRUCTOR], //user's custom constructor (optional)
-            klass;
+            klass,
+            //instantiation: new ClassA(), otherwise exception. 
+            //It would be more complicated and slow wrapper to allow 'new' omission
+            _inst_err = function(){throw new J.InstantiationError({}, 'use "new": new ClassA()')}
 
         //------------------------------ creating constructor at declaration time -------------------------------------
         if ( ! saved_ctor)
             //"default (implicit) constructor", handles also _:[], _:null etc
             //it is subject to discussion if default constructor should do super calls
-            klass = SuperClass ? function(){SuperClass.apply(this, arguments)} : function(){}
+            klass = SuperClass ? 
+                function(){
+                    if (! this[VALID_INSTANCE_MARKER]) _inst_err()          //condition shifted out of helper function for performance
+                    SuperClass.apply(this, arguments)
+                } 
+                : 
+                function(){if (! this[VALID_INSTANCE_MARKER]) _inst_err()}
             
         else if (typeof saved_ctor === FUN)
             //---- full explicit constructor
             // super constructor call (if needed) must be done as this.SuperClassName()
             klass = function(){
+                if (! this[VALID_INSTANCE_MARKER]) _inst_err()
                 try{
                     saved_ctor.apply(this, arguments)
                 }catch(e){
@@ -261,6 +274,7 @@ var Jassino = (function() {
                 if (SuperClass) throw new J.ConstructorError(saved_ctor, 
                     "_: [arg,...] assumes NO SuperClass")
                 klass = function(){
+                    if (! this[VALID_INSTANCE_MARKER]) _inst_err()
                     for (var i=0; i < saved_ctor.length; i++) 
                         this[saved_ctor[i]] = arguments[i]
                 }
@@ -271,6 +285,7 @@ var Jassino = (function() {
                 var base_of_ctor_args = saved_ctor[0].length,
                     ctor_args = saved_ctor[1]
                 klass = function(){
+                    if (! this[VALID_INSTANCE_MARKER]) _inst_err()
                     SuperClass.apply(this, slice(arguments, 0, base_of_ctor_args))
                     for (var i=0; i < ctor_args.length; i++)
                         this[ctor_args[i]] = arguments[base_of_ctor_args + i]
@@ -358,6 +373,9 @@ var Jassino = (function() {
         //which contains class members exactly
         klass[_CLASS_NAME] = data.name
 
+        //--------------------static marker, pointing that object is in the jassino chain----------------------
+        klass.prototype[VALID_INSTANCE_MARKER] = true   
+        
         return klass;
     }
 

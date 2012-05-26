@@ -222,9 +222,9 @@ test("Explicit shortcut constructor with super classes", 1, function() {
 
 
 //========================================================================================================================
-module("Class multiple instantiation consistency", default_up_down);
+module("Class instantiation consistency", default_up_down);
 
-test("Simple test", function() {
+test("Multiple instantiation test", function() {
     Class('A', {
         _: ['x', 'y'],
         C__z: 78,
@@ -257,6 +257,17 @@ test("Simple test", function() {
 
 
 });
+
+test("Forgotten 'new'", function() {
+    Class('A', {})
+
+    rs(function(){ns.A()}, Jassino.InstantiationError, "Instantiation error raised")
+    new ns.A()
+    rs(function(){ns.A()}, Jassino.InstantiationError, "Instantiation error raised 2")
+    new ns.A()
+
+});
+
 
 //========================================================================================================================
 module("Trait inheritance", default_up_down);
