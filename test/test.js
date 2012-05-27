@@ -692,9 +692,7 @@ test("Bees Simplified [not finished]", function() {
      *************************************************************************************/
 
     //convenient variables
-    var Class = Jassino.Class, 
-        Trait = Jassino.Trait,
-        NS = Jassino.NS
+    Jassino.use_global_scope() 
 
     //Namespace. It may contain members as well
     var Bees = {}
@@ -711,7 +709,7 @@ test("Bees Simplified [not finished]", function() {
         }
     })
 
-    Trait(Bees, 'Flyable', [Bees.Moveable], {     //explicit namespace
+    Trait(Bees, 'Flyable', [Movable], {     //explicit namespace
         flight_hours: 0,
         fly_to: function(loc){ 
             this.move_to(loc)
@@ -728,14 +726,14 @@ test("Bees Simplified [not finished]", function() {
         _:['name', 'lifespan']
     })
 
-    Class(Bees, 'FemaleBee', NS.Bee, {
+    Class(Bees, 'FemaleBee', Bee, {
         _: function(name){         //Explicit constructor
             this.Bee('F')          //super constructor call
             this.name=name
         }  //constructor
     })
 
-    Class(Bees, 'MaleBee', NS.Bee, [Bees.Flyable], {
+    Class(Bees, 'MaleBee', Bee, [Bees.Flyable], {
         _: [['name','lifespan'], []]
     })
 
@@ -746,7 +744,7 @@ test("Bees Simplified [not finished]", function() {
         }  //constructor
     })
     
-    Class(Bees, 'Worker', Bees.FemaleBee, [NS.Workable, Bees.Flyable], {
+    Class(Bees, 'Worker', Bees.FemaleBee, [Workable, Bees.Flyable], {
         //Sort Constructor form, means: 
         // On declaration time, generate constructor accepting 2 parameters,
         // first parameter pass to super constructor
@@ -801,13 +799,13 @@ test("Bees Simplified [not finished]", function() {
     })
 
     //----------------------------------------------------------------------------------------------
-    Class('BeeKeeper', [NS.Workable], {
+    Class('BeeKeeper', [Workable], {
         
     })
 
     //---------------------------------------------------------------
 
-    Class(Places, 'Hive', Place, [NS.Moveable], {
+    Class(Places, 'Hive', Place, [Movable], {
         $NAME: 'Place',
         //Constructor shortcut (SuperClass-less form)
         //means: take first argument from constructor and place it into this.bees

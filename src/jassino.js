@@ -48,12 +48,19 @@ var Jassino = (function() {
         InstantiationError: _make_exc("Instantiation"),
         MembersError: _make_exc("Members"),
 
-        is_array: is_array
+        use_global_scope: function(){
+                this.NS = window
+                window.Class = this.Class
+                window.Trait = this.Trait
+            }
+            
         },
-        UNDEF = "undefined",
-        FUN = "function",
-        STR = "string",
-        OBJ = 'object'
+        
+        T_UNDEF = "Undefined",
+        T_FUN = "Function",
+        T_STR = "String",
+        T_OBJ = "Object",
+        T_ARRAY = 'Array'
 
 
     //==============================================================================================
@@ -76,7 +83,7 @@ var Jassino = (function() {
     function slice(arr, begin, end){return Array.prototype.slice.call(arr, begin, end)}
     
     
-    function is_array(a){return Object.prototype.toString.call(a) === '[object Array]';} //ECMAScript recommendation
+    function is(tp, a){return Object.prototype.toString.call(a) === '[object ' + tp + ']';} //ECMAScript recommendation
 
     
     function _inner_extend(destination, source_field_val, field_name){
@@ -150,12 +157,11 @@ var Jassino = (function() {
         if (len < 2) throw new AE(args, "Specify at least name and body")
         
         //if first parameter an object => it should be namespace
-        if (args[0] !== null && //null is object
-            typeof args[0] === OBJ && ! is_array(args[0])
+        if (is(T_OBJ, args[0])
         ){ 
             name_pos++
             ns = args[0]
-        }else if(args[0] && typeof args[0] === STR){
+        }else if(args[0] && is(T_STR, args[0])){
             ns = J.NS
         }else{
             throw new AE(args, "First argument should be namespace or name")
@@ -169,7 +175,7 @@ var Jassino = (function() {
             //number of parameters between name and body
             var_par_num = len - (name_pos + 1) - 1
 
-        if (! data.name || typeof data.name !== STR) throw new AE(data, "Invalid name")
+        if (! data.name || ! is(T_STR, data.name)) throw new AE(data, "Invalid name")
                 
         if (var_par_num > 0){
             var errmsg = "Parameters between name and body: 1st - class, 2nd - traits array 1..n || one of them"
@@ -177,16 +183,16 @@ var Jassino = (function() {
 
             if (var_par_num == 2){ //superclass and traits
                 var traits = args[name_pos + 2]
-                if (typeof par_after_name == FUN && is_array(traits) ) {
+                if (is(T_FUN, par_after_name) && is(T_ARRAY, traits) ) {
                     data.sclass = par_after_name
                     data.straits = traits
                 }else{
                     throw new AE(data, errmsg)
                 }
             }else if(var_par_num == 1){ //super class OR traits
-                if (typeof par_after_name === FUN) {
+                if (is(T_FUN, par_after_name)) {
                     data.sclass = par_after_name
-                }else if (is_array(par_after_name)){
+                }else if (is(T_ARRAY, par_after_name)){
                     data.straits = par_after_name
                 }else{
                     throw new AE(data, errmsg)
@@ -198,7 +204,7 @@ var Jassino = (function() {
     }
 
     function _nsadd(data, obj){
-        if (typeof data.ns[data.name] !== UNDEF)
+        if (! is(T_UNDEF, data.ns[data.name]))
             throw new J.DuplicationError(data)
         data.ns[data.name] = obj
     }
@@ -253,7 +259,7 @@ var Jassino = (function() {
                 : 
                 function(){if (! this[_VALID_INSTANCE_MARKER]) _inst_err()}
             
-        else if (typeof saved_ctor === FUN)
+        else if (is(T_FUN, saved_ctor))
             //---- full explicit constructor
             // super constructor call (if needed) must be done as this.SuperClassName()
             klass = function(){
@@ -265,12 +271,12 @@ var Jassino = (function() {
                 }
             }
         
-        else if (is_array(saved_ctor)){
+        else if (is(T_ARRAY, saved_ctor)){
             //---- Shortcut form SPEC: <[[<'$super_arg', ....>],> ['constructor_arg', ....]<]>
             //saved_ctor non-empty here due to very first condition
 
             //saved_ctor[0] - super agrs, [1] - constructor args
-            if (! is_array(saved_ctor[0])){
+            if (! is(T_ARRAY, saved_ctor[0])){
                 if (SuperClass) throw new J.ConstructorError(saved_ctor, 
                     "_: [arg,...] assumes NO SuperClass")
                 klass = function(){
