@@ -52,10 +52,11 @@ var Jassino = (function() {
         InstantiationError: _make_exc("Instantiation"),
         MembersError: _make_exc("Members"),
 
-        use_global_scope: function(){
-                this.NS = window
-                window.Class = this.Class
-                window.Trait = this.Trait
+        use_global_scope: function(global_obj){
+                var g = global_obj || window
+                this.NS = g
+                g.Class = this.Class
+                g.Trait = this.Trait
             }
             
         },
@@ -160,8 +161,7 @@ var Jassino = (function() {
         if (len < 2) throw new AE(args, "Specify at least name and body")
         
         //if first parameter an object => it should be namespace
-        if (is(T_OBJ, args[0])
-        ){ 
+        if (is(T_OBJ, args[0])){ 
             name_pos++
             ns = args[0]
         }else if(args[0] && is(T_STR, args[0])){
