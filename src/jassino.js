@@ -2,7 +2,7 @@
 *******************                                   Jassino                                 ***********************
 *******************      Very light, fast and well tested object orientation in Javascript    ***********************
 *********************************************************************************************************************
-*   version: 0.2
+*   version: 0.3
 *   
 *   Copyright (c)  Denis Volokhovski, 2012
 *   
@@ -19,24 +19,28 @@ var Jassino = (function() {
     * body - definition body object provided for Class or Trait
     * super object - Super class prototype
     */
-    //--------------------------- you may change these parameters to your own --------------------------------------
-    var _CONSTRUCTOR       = '_',        //constructor function in body
-        _CLASS_NAME        = '_NAME',    //class name on the class itself
-
-        _SUPER_OBJ_SUFFIX  = '$',        //super object suffix
-        
-        _SUPER_CLASS       = '$C',       //reference to SuperClass in class 
-        _SUPER_CLASS_NAME  = '$NAME',    // reference to SuperClass name in class -OR- body 
-                                         // (in case of inheriting from usual function)
+    //---------------- Change these parameters to meet your own preferences / compatibility ----------------------------
+    var 
+        //------------ body definitions
+        _CONSTRUCTOR       = '_',        //constructor function in body
+        _SUPER_CLASS_NAME  = '$',        //SuperClass name. ONLY in case of inheriting from mere function.
 
         _PREFIX_LENGTH     = 3,
         _CLASS_MEMBER_PREF = "c__",
         _PROPERTY_PREF     = "p__",
-        
-        _PROP_FIELD_GET_PREF = 'get_',   //prefix attached to internal property field, so prop() <-get/set-> _PROP_prop
-        _PROP_FIELD_SET_PREF = 'set_',   //prefix attached to internal property field, so prop() <-get/set-> _PROP_prop
 
-        _VALID_INSTANCE_MARKER = "_jassino_"
+        //------------ variables available on the class
+        _CLASS_NAME        = '__name',    //class name on the class itself
+        _SUPER_CLASS       = '__super',   //reference to SuperClass in class 
+
+        //----------------- instance definitions
+        _SUPER_OBJ_PREF    = 'obj', //super object prefix, use like this.objSuperClass.old_method()
+
+        _PROP_FIELD_GET_PREF = 'get_',    //prefixes for getters/setters of a property
+        _PROP_FIELD_SET_PREF = 'set_',
+
+        //----------------- meta data
+        _VALID_INSTANCE_MARKER = "__jassino__"
         
     //--------------------------------------------------------------------------------------------------------------
     var J = {
@@ -316,7 +320,7 @@ var Jassino = (function() {
             klass.prototype.constructor = klass;
             
             //----------------------- this.Super$.blabla(): reference to super object ------------- 
-            klass.prototype[SNAME + _SUPER_OBJ_SUFFIX] = SuperClass.prototype
+            klass.prototype[_SUPER_OBJ_PREF + SNAME] = SuperClass.prototype
 
             //----------------- instance-level super reference -> super constructor -------------
             //this.SuperClassName(args), this points to instance
@@ -352,7 +356,6 @@ var Jassino = (function() {
             //----------------------- class-level super reference -------------
             //WARNING! this should go AFTER _extend() with SuperClass
             klass[_SUPER_CLASS] = SuperClass;
-            klass[_SUPER_CLASS_NAME] = SNAME
 
         }
 

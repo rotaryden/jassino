@@ -460,7 +460,7 @@ test("Inheritance from usual Prototype-Based pseudo class)", 12, function() {
     A.prototype.ovf = function(){ return [this.a, this.ov];}
 
     Class('T', A, {
-        $NAME: 'A',  //OBLIGATE parameter for natively constructed superclasses !!!
+        $: 'A',  //OBLIGATE parameter for natively constructed superclasses !!!
         _:[['constr_var'],[]],
         t: 'T',
         ov: 'T_ov',
@@ -664,7 +664,7 @@ test("Rewritten example from my-class (http://myjs.fr/my-class/) - NO INFINITE R
 
     var custom_ns = {}
     Class(custom_ns, 'Nightmarer', N.Dreamer, {
-        field: "dreams about",  //another way to specify instance members 
+        field: "dreams about",  //"instance constant" - added to every instance, may be overridden in constructor
         
         old_method: function(){ return "Okay, "}, //overriding
         
@@ -672,7 +672,7 @@ test("Rewritten example from my-class (http://myjs.fr/my-class/) - NO INFINITE R
             this.Dreamer(name, dream)
             this.field = this.field.toUpperCase() //control flow should be reached and field created
         },
-        test: function(){ return this.Dreamer$.old_method() + 
+        test: function(){ return this.objDreamer.old_method() + 
                                  this.old_method() +
                                  this.name + " " + this.field + " " + this.dream}
 
@@ -777,7 +777,7 @@ test("Bees Simplified [not finished]", function() {
     }
 
     Class(Places, 'Plant', Place, {
-        $NAME: 'Place'  //inheriting from native pseudo class requires its explicit name
+        $: 'Place'  //inheriting from native pseudo class requires its explicit name
     })
 
     Class(Places, 'Flower', Places.Plant, {
@@ -806,7 +806,7 @@ test("Bees Simplified [not finished]", function() {
     //---------------------------------------------------------------
 
     Class(Places, 'Hive', Place, [Movable], {
-        $NAME: 'Place',
+        $: 'Place',
         //Constructor shortcut (SuperClass-less form)
         //means: take first argument from constructor and place it into this.bees
         _: [['visitors capacity'],['bees']],
