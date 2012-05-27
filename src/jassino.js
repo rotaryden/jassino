@@ -69,15 +69,14 @@ var Jassino = (function() {
 
     //==============================================================================================
     function dump(obj){
-        var res = obj.toString()
-        if (res == "[object Object]")
+        if (is(T_OBJ, obj))
         {
-            res = ''
+            var res = ''
             for (var p in obj) {
-                res += p + '::' + obj[p] + '\n';
+                res += p + '::' + dump(obj[p]) + '\n';
             }
-        }
-        return res;
+            return res;
+        }else return obj.toString()
     }
     
     
@@ -182,7 +181,7 @@ var Jassino = (function() {
         if (! data.name || ! is(T_STR, data.name)) throw new AE(data, "Invalid name")
                 
         if (var_par_num > 0){
-            var errmsg = "Parameters between name and body: 1st - class, 2nd - traits array 1..n || one of them"
+            var errmsg = "Parameters SHOULD BE: ([namespace,] name, [class,] [traits_array,] body)"
             var par_after_name = args[name_pos + 1]
 
             if (var_par_num == 2){ //superclass and traits
