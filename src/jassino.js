@@ -79,9 +79,13 @@ var Jassino = (function() {
             return res;
         }else return obj.toString()
     }
-    
-    
-    function _make_exc(msg){ return function(data, message){this.message = (msg ? msg + ": " : "") + (message || "DATA:") + " ==> " +  dump(data)} }
+
+    function _make_exc(msg){
+        function Exc(data, message){this.message = (msg ? msg + ": " : "") + (message || "DATA:") + " ==> " +  dump(data)}
+        Exc.prototype = new Error()
+        Exc.prototype.constructor = Exc
+        return Exc
+    }
 
     
     function slice(arr, begin, end){return Array.prototype.slice.call(arr, begin, end)}
