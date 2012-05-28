@@ -280,7 +280,21 @@ test("Forgotten 'new'", function() {
     new ns.E(8,9)
 
 });
+//========================================================================================================================
+module("Class meta definitions", default_up_down);
 
+test("Multiple instantiation test", function() {
+    Class('A', {})
+    Class('B', ns.A, {
+    })
+
+    ste(ns.A.__name, 'A', 'A name')
+    ste(ns.B.__name, 'B', 'B name')
+    ste(ns.B.__super.__name, 'A', 'B super name is A')
+    
+    var b = new ns.B()
+    ste(b.objA, ns.A.prototype, "super object")
+})
 
 //========================================================================================================================
 module("Trait inheritance", default_up_down);
@@ -411,10 +425,12 @@ test("Multiple mixins", 2, function() {
 module("Class inheritance", default_up_down);
 
 //-------------------------------------------------------------------------------------------------------------------
-test("Inheritance: members test", 15, function() {
+test("Inheritance: members test", function() {
     Class('A', {
         a: 'a',
         ov: 'ov',
+        c_ov: 78,
+        _:['c1', 'c2'],
         af: function(){return [this.a, this.ov]},
         ovf: function(){ return [this.a, this.ov];}
     })
@@ -422,15 +438,18 @@ test("Inheritance: members test", 15, function() {
     Class('T', ns.A, {
         t: 'T',
         ov: 'T_ov',
+        _:[['c1','c2'],['c_ov']],
         tf: function(){return [this.t, this.ov, this.a];},
         ovf: function(){ return [this.t, this.ov, this.a];}
     })
-    var a = new ns.A(), t = new ns.T()
+    var a = new ns.A(1, 2), t = new ns.T(3, 4, 5)
     
     ste(a.af()[0], 'a', 'A.af() - ancestor\'s members do not corrupted')
     ste(a.af()[1], 'ov', 'A.af() - ancestor\'s members do not corrupted 2')
     ste(a.ovf()[0], 'a', 'A.ovf() - ancestor\'s members do not corrupted')
     ste(a.ovf()[1], 'ov', 'A.ovf() - ancestor\'s members do not corrupted 2')
+
+    ste(a.c_ov, 78, 'A().c_ov - ancestor\'s members do not corrupted 2')
 
     ste(t.t, 'T', 't = "T" - own members not corrupted')
     ste(t.ov, 'T_ov', 't = "T" - own overriden members are correct')
@@ -447,6 +466,9 @@ test("Inheritance: members test", 15, function() {
     ste(t.ovf()[0], 'T', 'Overriden A.ovf() -> T.ovf() - output should be as in T.tf()')
     ste(t.ovf()[1], 'T_ov', 'Overriden A.ovf() -> T.ovf() - output should be as in T.tf() 2')
     ste(t.ovf()[2], 'a', 'Overriden A.ovf() -> T.ovf() - output should be as in T.tf() 3')
+
+    ste(t.c_ov, 5, 'T().c_ov - overridden')
+
 });
 
 //-------------------------------------------------------------------------------------------------------------------
