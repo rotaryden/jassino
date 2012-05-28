@@ -61,16 +61,16 @@ var Jassino = (function() {
             
         },
         
-        T_UNDEF = "Undefined",
+        UNDEF = "undefined",
+        
         T_FUN = "Function",
         T_STR = "String",
-        T_OBJ = "Object",
         T_ARRAY = 'Array'
 
 
     //==============================================================================================
     function dump(obj){
-        if (is(T_OBJ, obj))
+        if (is_object(obj))
         {
             var res = ''
             for (var p in obj) {
@@ -88,7 +88,8 @@ var Jassino = (function() {
     
     
     function is(tp, a){return Object.prototype.toString.call(a) === '[object ' + tp + ']';} //ECMAScript recommendation
-
+    //this function needs for Google Apps Script compatibility
+    function is_object(a){return is('Object', a) && a /*not null and not undefined which treated as objects on GAS*/}
     
     function _inner_extend(destination, source_field_val, field_name){
         if ((destination[field_name] !== source_field_val) &&
@@ -161,7 +162,7 @@ var Jassino = (function() {
         if (len < 2) throw new AE(args, "Specify at least name and body")
         
         //if first parameter an object => it should be namespace
-        if (is(T_OBJ, args[0])){ 
+        if (is_object(args[0])){ 
             name_pos++
             ns = args[0]
         }else if(args[0] && is(T_STR, args[0])){
@@ -207,7 +208,7 @@ var Jassino = (function() {
     }
 
     function _nsadd(data, obj){
-        if (! is(T_UNDEF, data.ns[data.name]))
+        if (typeof data.ns[data.name] !== UNDEF)
             throw new J.DuplicationError(data)
         data.ns[data.name] = obj
     }

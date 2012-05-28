@@ -19,6 +19,11 @@ Why yet another one? Because of specific syntax sugar, to make things just handy
 * cross-browser, no dependencies
 * less then 4Kb minified !
 
+## Compatibility
+* All browsers except Internet Explorer cross-frame
+* Google Apps Script
+
+
 [Detailed capabilities of the library may be seen from unit-test examples](https://github.com/altitudebreath/jassino/blob/master/test/test.js)  
 
 ## At a glance
@@ -59,6 +64,13 @@ test("Fine super handling", 1, function() {
  
 ## Installation
  
+### Browser
 Just include _jassino.min.js_ into your javascript bundle/project.
   
+### Google Apps Script
+Install as library, docs [here](https://developers.google.com/apps-script/guide_libraries)
+Remember that you will have to specify your library name, when using in script
+like Mylib.Jassino.Class, I'd recommend to make a shortcut
+
+## Build
 You may rebuild it from source running ./build_min.sh, provided you have nodejs installed.
