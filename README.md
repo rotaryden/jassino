@@ -73,5 +73,8 @@ Install as library, docs [here](https://developers.google.com/apps-script/guide_
 Remember that you will have to specify your library name, when using in script
 like Mylib.Jassino.Class, I'd recommend to make a shortcut
 
+Also in GAS you will not be able to use Jassino.use_global_scope() with global object
+and default namespace (Jassino.NS) if Jassino library have no write permissions
+
 ## Build
 You may rebuild it from source running ./build_min.sh, provided you have nodejs installed.
