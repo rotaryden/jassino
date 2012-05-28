@@ -34,7 +34,7 @@ var Jassino = (function() {
         _SUPER_CLASS       = '__super',   //reference to SuperClass in class 
 
         //----------------- instance definitions
-        _SUPER_OBJ_PREF    = 'obj', //super object prefix, use like this.objSuperClass.old_method()
+        _SUPER_METHOD_CALL_PREF    = 'm__', //super method prefix, use like this.callSuperClass("method_name", args,... )
 
         _PROP_FIELD_GET_PREF = 'get_',    //prefixes for getters/setters of a property
         _PROP_FIELD_SET_PREF = 'set_',
@@ -318,9 +318,6 @@ var Jassino = (function() {
 
             klass.prototype.constructor = klass;
             
-            //----------------------- this.Super$.blabla(): reference to super object ------------- 
-            klass.prototype[_SUPER_OBJ_PREF + SNAME] = SuperClass.prototype
-
             //----------------- instance-level super reference -> super constructor -------------
             //this.SuperClassName(args), this points to instance
             //WARNING!!! picking name         $SuperClassName        rather then 'super' or so is essential,
@@ -349,6 +346,10 @@ var Jassino = (function() {
                 SuperClass.apply(this, arguments)
             }
 
+            //------------------ super method call: use like this.m__SuperClass(method_name, arg1,...) ------------- 
+            klass.prototype[_SUPER_METHOD_CALL_PREF + SNAME] = function(method){
+                return SuperClass.prototype[method].apply(this, slice(arguments, 1))
+            }
             //-------------- Class Members inherited from SuperClass --------------------------------------
             _extend(klass, SuperClass);
 

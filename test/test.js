@@ -284,16 +284,20 @@ test("Forgotten 'new'", function() {
 module("Class meta definitions", default_up_down);
 
 test("Multiple instantiation test", function() {
-    Class('A', {})
+    Class('A', {
+        m:function(a ,b){return 1 + a + b;}
+    })
     Class('B', ns.A, {
+        m: function(a, b){return 10 + a + b;}
     })
 
     ste(ns.A.__name, 'A', 'A name')
     ste(ns.B.__name, 'B', 'B name')
     ste(ns.B.__super.__name, 'A', 'B super name is A')
-    
+
     var b = new ns.B()
-    ste(b.objA, ns.A.prototype, "super object")
+    ste(b.m(1, 2), 13, "super method")
+    ste(b.m__A("m", 1, 2), 4, "super method")
 })
 
 //========================================================================================================================
@@ -694,7 +698,7 @@ test("Rewritten example from my-class (http://myjs.fr/my-class/) - NO INFINITE R
             this.Dreamer(name, dream)
             this.field = this.field.toUpperCase() //control flow should be reached and field created
         },
-        test: function(){ return this.objDreamer.old_method() + 
+        test: function(){ return this.m__Dreamer("old_method") + 
                                  this.old_method() +
                                  this.name + " " + this.field + " " + this.dream}
 
