@@ -69,6 +69,7 @@ Just include _jassino.min.js_ into your javascript bundle/project.
   
 ### Google Apps Script
 Install as library, docs [here](https://developers.google.com/apps-script/guide_libraries)
+
 Remember that you will have to specify your library name, when using in script
 like Mylib.Jassino.Class, I'd recommend to make a shortcut
 
