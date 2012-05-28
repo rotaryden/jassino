@@ -45,7 +45,7 @@ test("Fine super handling", 1, function() {
             this.Dreamer(name, dream)
             this.field = this.field.toUpperCase() //control flow should be reached and field created
         },
-        test: function(){ return this.objDreamer.old_method() + 
+        test: function(){ return this.m__Dreamer("old_method") + 
                                  this.old_method() +
                                  this.name + " " + this.field + " " + this.dream}
 
