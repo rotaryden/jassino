@@ -706,7 +706,7 @@ test("Rewritten example from my-class (http://myjs.fr/my-class/) - NO INFINITE R
 
     var nm = new custom_ns.Nightmarer("Lissa", "Pie")
     
-    ste(nm.test(), "Hey!, Okay, Lissa DREAMS ABOUT Pie", "test to not go into infinite recursion!")
+    strictEqual(nm.test(), "Hey!, Okay, Lissa DREAMS ABOUT Pie", "test to not go into infinite recursion!")
 })
 
 //========================================================================================================================

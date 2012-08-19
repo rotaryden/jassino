@@ -33,7 +33,7 @@ Why yet another one? Because of specific syntax sugar, to make things just handy
 
 ## At a glance
 ```javascript
-test("Fine super handling", 1, function() {
+test("Rewritten example from my-class (http://myjs.fr/my-class/) - NO INFINITE RECURSION!", 1, function() {
     var N = Jassino.NS
     
     Class('Person', {
@@ -42,7 +42,7 @@ test("Fine super handling", 1, function() {
     })
 
     Class('Dreamer', N.Person, {
-        _:[['name'], ['dream']]  //constructor shortcut: name -> super call, dream -> this.dream
+        _:['name', 'dream']  //constructor shortcut: name -> super call, dream -> this.dream
     })
 
     var custom_ns = {}
@@ -64,7 +64,7 @@ test("Fine super handling", 1, function() {
     var nm = new custom_ns.Nightmarer("Lissa", "Pie")
     
     strictEqual(nm.test(), "Hey!, Okay, Lissa DREAMS ABOUT Pie", "test to not go into infinite recursion!")
- })
+})
  ```
  
 ## Installation
