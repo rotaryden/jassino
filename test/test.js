@@ -157,7 +157,7 @@ test("Implicit constructor", 1, function() {
 test("Explicit shortcut - no SuperClass", 3, function() {
 
     Class('T', {
-        _: ['country', 'flag_color']
+        _: 'country, flag_color'
     })
 
     var t = new ns.T("China", "Red")
@@ -172,7 +172,7 @@ test("Explicit shortcut - no SuperClass", 3, function() {
 test("Explicit shortcut with super args but no SuperClass (Error)", function() {
     rs(function(){
             Class('T', {
-                _: [[], ['country', 'flag_color']]
+                _: ['', 'country, flag_color']
             })
         },
         Jassino.ConstructorError,
@@ -180,7 +180,7 @@ test("Explicit shortcut with super args but no SuperClass (Error)", function() {
     )
     rs(function(){
             Class('T', {
-                _: [['blabla'], []]
+                _: ['blabla', '']
             })
         },
         Jassino.ConstructorError,
@@ -188,7 +188,7 @@ test("Explicit shortcut with super args but no SuperClass (Error)", function() {
     )
     rs(function(){
             Class('T', {
-                _: [[], []]
+                _: ['', '']
             })
         },
         Jassino.ConstructorError,
@@ -207,11 +207,11 @@ test("Explicit shortcut constructor with super classes", 1, function() {
     })
 
     Class('B', ns.A, {
-        _: [['ancestor NAME'], ['b']]    //first array is only for readability, only its size is used 
+        _: ['ancestor NAME', 'b']    //first string is only for readability, only its size is used 
     })
 
     Class('T', ns.B, {
-        _:[['anc', 'b'], ['c']],
+        _:['anc, b', 'c'],
         res: function(){return this.a + " " + this.a1 + " " + this.b + " " + this.c}
     })
 
@@ -226,7 +226,7 @@ module("Class instantiation consistency", default_up_down);
 
 test("Multiple instantiation test", function() {
     Class('A', {
-        _: ['x', 'y'],
+        _: 'x, y',
         C__z: 78,
         P__w: 98,
         a: 4,
@@ -263,9 +263,9 @@ test("Forgotten 'new'", function() {
     Class('B', ns.A, {})
     Class('C', {_:function(x){}})
     Class('D', ns.C, {
-        _:[['x'],['a']]
+        _:['x','a']
     })
-    Class('E', {_:['a', 'b']})
+    Class('E', {_:'a, b'})
 
     rs(function(){ns.A()}, Jassino.InstantiationError, "Instantiation error raised")
     rs(function(){ns.B()}, Jassino.InstantiationError, "Instantiation error raised 2")
@@ -434,7 +434,7 @@ test("Inheritance: members test", function() {
         a: 'a',
         ov: 'ov',
         c_ov: 78,
-        _:['c1', 'c2'],
+        _:'c1, c2',
         af: function(){return [this.a, this.ov]},
         ovf: function(){ return [this.a, this.ov];}
     })
@@ -442,7 +442,7 @@ test("Inheritance: members test", function() {
     Class('T', ns.A, {
         t: 'T',
         ov: 'T_ov',
-        _:[['c1','c2'],['c_ov']],
+        _:['c1, c2', 'c_ov'],
         tf: function(){return [this.t, this.ov, this.a];},
         ovf: function(){ return [this.t, this.ov, this.a];}
     })
@@ -487,7 +487,7 @@ test("Inheritance from usual Prototype-Based pseudo class)", 12, function() {
 
     Class('T', A, {
         $: 'A',  //OBLIGATE parameter for natively constructed superclasses !!!
-        _:[['constr_var'],[]],
+        _:['constr_var', ''],
         t: 'T',
         ov: 'T_ov',
         tf: function(){return [this.t, this.ov, this.a];},
@@ -578,7 +578,7 @@ test("basic test", function() {
         
         c__a: 8,
         c__b: function(){ return ns.T.a + 12},
-        C__c: null,            //prefix is key insensitive
+        C__c: null,            //prefix is CASE insensitive
         C__d: undefined
     })
 
@@ -644,7 +644,7 @@ test("test for a Trait mixed into class + constructor", function() {
     })
 
     Class('C', [ns.T], {
-        _:['a', 'c']
+        _:'a, c'
     })
     
     var t = new ns.C('over-initialized a', 'over-initialized c')
@@ -685,7 +685,7 @@ test("Rewritten example from my-class (http://myjs.fr/my-class/) - NO INFINITE R
     })
 
     Class('Dreamer', N.Person, {
-        _:[['name'], ['dream']]  //constructor shortcut: name -> super call, dream -> this.dream
+        _:['name', 'dream']  //constructor shortcut: name -> super call, dream -> this.dream
     })
 
     var custom_ns = {}
@@ -749,7 +749,7 @@ test("Bees Simplified [not finished]", function() {
 
     //---------------------------------------------------------------
     Class('Bee', {             
-        _:['name', 'lifespan']
+        _: 'name, lifespan'
     })
 
     Class(Bees, 'FemaleBee', Bee, {
@@ -760,7 +760,7 @@ test("Bees Simplified [not finished]", function() {
     })
 
     Class(Bees, 'MaleBee', Bee, [Bees.Flyable], {
-        _: [['name','lifespan'], []]
+        _: ['name, lifespan', '']
     })
 
     Class(Bees, 'Queen', Bees.FemaleBee, {               
@@ -775,7 +775,7 @@ test("Bees Simplified [not finished]", function() {
         // On declaration time, generate constructor accepting 2 parameters,
         // first parameter pass to super constructor
         // second parameter write to this.name 
-        _: [['gender'], ['name']],
+        _: ['gender', 'name'],
         get_productiveness: function(){ return this.productiveness }
     })
     //----------------------------------------------------------------------------------------------
@@ -835,7 +835,7 @@ test("Bees Simplified [not finished]", function() {
         $: 'Place',
         //Constructor shortcut (SuperClass-less form)
         //means: take first argument from constructor and place it into this.bees
-        _: [['visitors capacity'],['bees']],
+        _: ['visitors capacity', 'bees'],
 
         get_most_productive: function(){
             if ( ! this.bees) return null

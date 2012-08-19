@@ -2,7 +2,7 @@
 *******************                                   Jassino                                 ***********************
 *******************      Very light, fast and well tested object orientation in Javascript    ***********************
 *********************************************************************************************************************
-*   version: 0.3
+*   version: 0.4
 *   
 *   Copyright (c)  Denis Volokhovski, 2012
 *   
@@ -94,6 +94,8 @@ var Jassino = (function() {
     function is(tp, a){return Object.prototype.toString.call(a) === '[object ' + tp + ']';} //ECMAScript recommendation
     //this function needs for Google Apps Script compatibility
     function is_object(a){return is('Object', a) && a /*not null and not undefined which treated as objects on GAS*/}
+    
+    function comma_split(s){ return s ? s.split(/\s*,\s*/) : []}
     
     function _inner_extend(destination, source_field_val, field_name){
         if ((destination[field_name] !== source_field_val) &&
@@ -278,34 +280,34 @@ var Jassino = (function() {
                     throw new J.ConstructorError(e.message, 'Probably recursive call from inside of constructor to itself (Did you meant super call?)')
                 }
             }
-        
-        else if (is(T_ARRAY, saved_ctor)){
-            //---- Shortcut form SPEC: <[[<'$super_arg', ....>],> ['constructor_arg', ....]<]>
-            //saved_ctor non-empty here due to very first condition
 
-            //saved_ctor[0] - super agrs, [1] - constructor args
-            if (! is(T_ARRAY, saved_ctor[0])){
-                if (SuperClass) throw new J.ConstructorError(saved_ctor, 
-                    "_: [arg,...] assumes NO SuperClass")
-                klass = function(){
-                    if (! this[_VALID_INSTANCE_MARKER]) _inst_err()
-                    for (var i=0; i < saved_ctor.length; i++) 
-                        this[saved_ctor[i]] = arguments[i]
-                }
-            }else{
-                //works also for [[],[]] that is equivalent for default constructor
-                if ( ! SuperClass) throw new J.ConstructorError(saved_ctor,
-                        "_: [[super_arg1,...], [arg1,...]] assumes SuperClass")
-                var base_of_ctor_args = saved_ctor[0].length,
-                    ctor_args = saved_ctor[1]
-                klass = function(){
-                    if (! this[_VALID_INSTANCE_MARKER]) _inst_err()
-                    SuperClass.apply(this, slice(arguments, 0, base_of_ctor_args))
-                    for (var i=0; i < ctor_args.length; i++)
-                        this[ctor_args[i]] = arguments[base_of_ctor_args + i]
-                }
+        else if (is(T_STR, saved_ctor)){
+            //SPEC: 'arg1, arg2, ...', may be empty
+            if (SuperClass) throw new J.ConstructorError(saved_ctor,
+                "_: 'arg,...' assumes NO SuperClass")
+            klass = function(){
+                if (! this[_VALID_INSTANCE_MARKER]) _inst_err()
+                var par = comma_split(saved_ctor)
+                for (var i=0; i < par.length; i++)
+                    this[par[i]] = arguments[i]
             }
-        }else
+        }
+        else if (is(T_ARRAY, saved_ctor) && saved_ctor.length === 2 && is(T_STR, saved_ctor[0]) && is(T_STR, saved_ctor[1])){
+            //SPEC: ['super_arg1, super_arg2, ...', 'constructor_arg1, ...'], where both strings may be empty
+            //saved_ctor non-empty here due to very first condition
+            //saved_ctor[0] - super agrs, [1] - constructor args
+            if ( ! SuperClass) throw new J.ConstructorError(saved_ctor,
+                    "_: ['super_arg1,...', 'arg1,...'] assumes SuperClass")
+            
+            var base_of_ctor_args = comma_split(saved_ctor[0]).length,
+                ctor_args = comma_split(saved_ctor[1])
+            klass = function(){
+                if (! this[_VALID_INSTANCE_MARKER]) _inst_err()
+                SuperClass.apply(this, slice(arguments, 0, base_of_ctor_args))
+                for (var i=0; i < ctor_args.length; i++)
+                    this[ctor_args[i]] = arguments[base_of_ctor_args + i]
+            }
+        } else
             throw new J.ConstructorError(saved_ctor, "Invalid constructor")
         
         _nsadd(data, klass)

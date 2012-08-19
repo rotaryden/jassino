@@ -23,6 +23,11 @@ Why yet another one? Because of specific syntax sugar, to make things just handy
 * All browsers except Internet Explorer cross-frame
 * Google Apps Script
 
+## CHANGELOG
+
+* v0.4 - breaking changes, shortcut constructors ['par1', 'par2', ...] -> 
+         'par1, par2,...', for super constructor [['a', 'b',...]['c', 'd',...]] - > ['a, b, ...', 'c, d,...']
+* v0.3 - first stable version
 
 [Detailed capabilities of the library may be seen from unit-test examples](https://github.com/altitudebreath/jassino/blob/master/test/test.js)  
 
