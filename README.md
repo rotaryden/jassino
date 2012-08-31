@@ -25,6 +25,11 @@ Why yet another one? Because of specific syntax sugar, to make things just handy
 
 ## CHANGELOG
 
+* v0.5.0 - breaking changes, shortcut constructor changes for super case:  
+         'super_a, super_b, ... ## c, d,...',
+         jassino is now compatible with CoffeeScript 'super' call for ancestor methods, and super constructor
+         in case of explicit declaration of constructor in derived class
+         Error reporting on parameters improved.
 * v0.4 - breaking changes, shortcut constructors ['par1', 'par2', ...] -> 
          'par1, par2,...', for super constructor [['a', 'b',...]['c', 'd',...]] - > ['a, b, ...', 'c, d,...']
 * v0.3 - first stable version
@@ -42,7 +47,7 @@ test("Rewritten example from my-class (http://myjs.fr/my-class/) - NO INFINITE R
     })
 
     Class('Dreamer', N.Person, {
-        _:['name', 'dream']  //constructor shortcut: name -> super call, dream -> this.dream
+        _:'name ## dream'  //constructor shortcut: name -> super call, dream -> this.dream
     })
 
     var custom_ns = {}
@@ -55,7 +60,7 @@ test("Rewritten example from my-class (http://myjs.fr/my-class/) - NO INFINITE R
             this.Dreamer(name, dream)
             this.field = this.field.toUpperCase() //control flow should be reached and field created
         },
-        test: function(){ return this.m__Dreamer("old_method") + 
+        test: function(){ return this.Dreamer.do("old_method") + 
                                  this.old_method() +
                                  this.name + " " + this.field + " " + this.dream}
 

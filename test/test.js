@@ -172,7 +172,7 @@ test("Explicit shortcut - no SuperClass", 3, function() {
 test("Explicit shortcut with super args but no SuperClass (Error)", function() {
     rs(function(){
             Class('T', {
-                _: ['', 'country, flag_color']
+                _: '## country, flag_color'
             })
         },
         Jassino.ConstructorError,
@@ -197,7 +197,7 @@ test("Explicit shortcut with super args but no SuperClass (Error)", function() {
 });
 
 //-------------------------------------------------------------------------------------------------------------------
-test("Explicit shortcut constructor with super classes", 1, function() {
+test("Explicit shortcut constructor with super class", function() {
 
     Class('A', {
         _:function(ancestor_name){
@@ -207,17 +207,44 @@ test("Explicit shortcut constructor with super classes", 1, function() {
     })
 
     Class('B', ns.A, {
-        _: ['ancestor NAME', 'b']    //first string is only for readability, only its size is used 
+        _: 'ancestor NAME ## b'    //first string is only for readability 
     })
 
     Class('T', ns.B, {
-        _:['anc, b', 'c'],
+        _:'anc, b ## c',
         res: function(){return this.a + " " + this.a1 + " " + this.b + " " + this.c}
     })
 
     var t = new ns.T("Sam", "b", "c")
 
     ste(t.res(), "ancestor Sam b c", 'work properly with super classes, ignores extra parameters')
+});
+
+test("Explicit shortcut constructor with super class and empty super args list", function() {
+
+    Class('A', {
+        _: 'a, b'
+    })
+
+    Class('T', ns.A, {
+        _: '## c',
+        res: function(){return this.a + this.b + this.c}
+    })
+
+
+    Class('AA', {})
+    
+    Class('TT', ns.AA, {
+        _:'## c',
+        res: function(){return this.c}
+    })
+
+
+    var t = new ns.T("a", "b", "c")
+    var tt = new ns.TT("empty_anc")
+
+    ste(t.res(), "abc", 'works for superconstructor with partameters')
+    ste(tt.res(), "empty_anc", '...and without parameters')
 });
 
 
@@ -263,7 +290,7 @@ test("Forgotten 'new'", function() {
     Class('B', ns.A, {})
     Class('C', {_:function(x){}})
     Class('D', ns.C, {
-        _:['x','a']
+        _:'x ## a'
     })
     Class('E', {_:'a, b'})
 
@@ -291,13 +318,13 @@ test("Multiple instantiation test", function() {
         m: function(a, b){return 10 + a + b;}
     })
 
-    ste(ns.A.__name, 'A', 'A name')
-    ste(ns.B.__name, 'B', 'B name')
-    ste(ns.B.__super.__name, 'A', 'B super name is A')
+    ste(ns.A.__name__, 'A', 'A name')
+    ste(ns.B.__name__, 'B', 'B name')
+    ste(ns.B.__super__.__name__, 'A', 'B super name is A')
 
     var b = new ns.B()
-    ste(b.m(1, 2), 13, "super method")
-    ste(b.m__A("m", 1, 2), 4, "super method")
+    ste(b.m(1, 2), 13, "super method test: regular method")
+    ste(b.A.do("m", 1, 2), 4, "super method test: super method")
 })
 
 //========================================================================================================================
@@ -442,7 +469,7 @@ test("Inheritance: members test", function() {
     Class('T', ns.A, {
         t: 'T',
         ov: 'T_ov',
-        _:['c1, c2', 'c_ov'],
+        _: 'c1, c2 ## c_ov',
         tf: function(){return [this.t, this.ov, this.a];},
         ovf: function(){ return [this.t, this.ov, this.a];}
     })
@@ -487,7 +514,7 @@ test("Inheritance from usual Prototype-Based pseudo class)", 12, function() {
 
     Class('T', A, {
         $: 'A',  //OBLIGATE parameter for natively constructed superclasses !!!
-        _:['constr_var', ''],
+        _:'constr_var ## ',
         t: 'T',
         ov: 'T_ov',
         tf: function(){return [this.t, this.ov, this.a];},
@@ -685,7 +712,7 @@ test("Rewritten example from my-class (http://myjs.fr/my-class/) - NO INFINITE R
     })
 
     Class('Dreamer', N.Person, {
-        _:['name', 'dream']  //constructor shortcut: name -> super call, dream -> this.dream
+        _:'name ## dream'  //constructor shortcut: name -> super call, dream -> this.dream
     })
 
     var custom_ns = {}
@@ -698,7 +725,7 @@ test("Rewritten example from my-class (http://myjs.fr/my-class/) - NO INFINITE R
             this.Dreamer(name, dream)
             this.field = this.field.toUpperCase() //control flow should be reached and field created
         },
-        test: function(){ return this.m__Dreamer("old_method") + 
+        test: function(){ return this.Dreamer.do("old_method") + 
                                  this.old_method() +
                                  this.name + " " + this.field + " " + this.dream}
 
@@ -760,7 +787,7 @@ test("Bees Simplified [not finished]", function() {
     })
 
     Class(Bees, 'MaleBee', Bee, [Bees.Flyable], {
-        _: ['name, lifespan', '']
+        _: 'name, lifespan ## '
     })
 
     Class(Bees, 'Queen', Bees.FemaleBee, {               
@@ -775,7 +802,7 @@ test("Bees Simplified [not finished]", function() {
         // On declaration time, generate constructor accepting 2 parameters,
         // first parameter pass to super constructor
         // second parameter write to this.name 
-        _: ['gender', 'name'],
+        _: 'gender ## name',
         get_productiveness: function(){ return this.productiveness }
     })
     //----------------------------------------------------------------------------------------------
@@ -835,7 +862,7 @@ test("Bees Simplified [not finished]", function() {
         $: 'Place',
         //Constructor shortcut (SuperClass-less form)
         //means: take first argument from constructor and place it into this.bees
-        _: ['visitors capacity', 'bees'],
+        _: 'visitors capacity ## bees',
 
         get_most_productive: function(){
             if ( ! this.bees) return null

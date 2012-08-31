@@ -2,7 +2,7 @@
 *******************                                   Jassino                                 ***********************
 *******************      Very light, fast and well tested object orientation in Javascript    ***********************
 *********************************************************************************************************************
-*   version: 0.4
+*   version: 0.5.0
 *   
 *   Copyright (c)  Denis Volokhovski, 2012
 *   
@@ -29,12 +29,14 @@ var Jassino = (function() {
         _CLASS_MEMBER_PREF = "c__",
         _PROPERTY_PREF     = "p__",
 
+        _CONSTRUCTOR_SHORTCUT_SUPER_SEP = '##',
+
         //------------ variables available on the class
-        _CLASS_NAME        = '__name',    //class name on the class itself
-        _SUPER_CLASS       = '__super',   //reference to SuperClass in class 
+        _CLASS_NAME        = '__name__',    //class name on the class itself
+        _SUPER_CLASS       = '__super__', //reference to SuperClass in class, compatible with CoffeeScript super call 
 
         //----------------- instance definitions
-        _SUPER_METHOD_CALL_PREF    = 'm__', //super method prefix, use like this.callSuperClass("method_name", args,... )
+        _SUPER_METHOD_CALL    = 'do', //super method call, e.g. this.SuperClass.do("method_name", args,... )
 
         _PROP_FIELD_GET_PREF = 'get_',    //prefixes for getters/setters of a property
         _PROP_FIELD_SET_PREF = 'set_',
@@ -188,7 +190,7 @@ var Jassino = (function() {
         if (! data.name || ! is(T_STR, data.name)) throw new AE(data, "Invalid name")
                 
         if (var_par_num > 0){
-            var errmsg = "Parameters SHOULD BE: ([namespace,] name, [class,] [traits_array,] body)"
+            var errmsg = " -> Parameters SHOULD BE: ([namespace,] name, [class,] [traits_array,] body)"
             var par_after_name = args[name_pos + 1]
 
             if (var_par_num == 2){ //superclass and traits
@@ -197,7 +199,8 @@ var Jassino = (function() {
                     data.sclass = par_after_name
                     data.straits = traits
                 }else{
-                    throw new AE(data, errmsg)
+                    throw new AE(data, "Super traits and/or super class are invalid:" + 
+                        par_after_name + ',' + traits + errmsg)
                 }
             }else if(var_par_num == 1){ //super class OR traits
                 if (is(T_FUN, par_after_name)) {
@@ -205,7 +208,7 @@ var Jassino = (function() {
                 }else if (is(T_ARRAY, par_after_name)){
                     data.straits = par_after_name
                 }else{
-                    throw new AE(data, errmsg)
+                    throw new AE(data, "Class or traits array is invalid: " + par_after_name + errmsg)
                 }
             }else
                 throw new AE(data, "too many parameters")
@@ -282,31 +285,37 @@ var Jassino = (function() {
             }
 
         else if (is(T_STR, saved_ctor)){
-            //SPEC: 'arg1, arg2, ...', may be empty
-            if (SuperClass) throw new J.ConstructorError(saved_ctor,
-                "_: 'arg,...' assumes NO SuperClass")
-            klass = function(){
-                if (! this[_VALID_INSTANCE_MARKER]) _inst_err()
-                var par = comma_split(saved_ctor)
-                for (var i=0; i < par.length; i++)
-                    this[par[i]] = arguments[i]
+            var args = saved_ctor.split(new RegExp('\\s*' + _CONSTRUCTOR_SHORTCUT_SUPER_SEP + '\\s*'))
+            if ( args.length === 1){
+                //SPEC: 'arg1, arg2, ...', may be empty
+                if (SuperClass) throw new J.ConstructorError(args[0],
+                    "_: 'arg,...' assumes NO SuperClass")
+                klass = function(){
+                    if (! this[_VALID_INSTANCE_MARKER]) _inst_err()
+                    var par = comma_split(args[0])
+                    for (var i=0; i < par.length; i++)
+                        this[par[i]] = arguments[i]
+                }
             }
-        }
-        else if (is(T_ARRAY, saved_ctor) && saved_ctor.length === 2 && is(T_STR, saved_ctor[0]) && is(T_STR, saved_ctor[1])){
-            //SPEC: ['super_arg1, super_arg2, ...', 'constructor_arg1, ...'], where both strings may be empty
-            //saved_ctor non-empty here due to very first condition
-            //saved_ctor[0] - super agrs, [1] - constructor args
-            if ( ! SuperClass) throw new J.ConstructorError(saved_ctor,
-                    "_: ['super_arg1,...', 'arg1,...'] assumes SuperClass")
-            
-            var base_of_ctor_args = comma_split(saved_ctor[0]).length,
-                ctor_args = comma_split(saved_ctor[1])
-            klass = function(){
-                if (! this[_VALID_INSTANCE_MARKER]) _inst_err()
-                SuperClass.apply(this, slice(arguments, 0, base_of_ctor_args))
-                for (var i=0; i < ctor_args.length; i++)
-                    this[ctor_args[i]] = arguments[base_of_ctor_args + i]
-            }
+            else if (args.length === 2){
+                //SPEC: 'super_arg1, super_arg2, ... ## constructor_arg1, ...', where both strings may be empty
+                //saved_ctor non-empty here due to very first condition
+                //saved_ctor[0] - super agrs, [1] - constructor args
+                if ( ! SuperClass) throw new J.ConstructorError(saved_ctor,
+                        "_: 'super_arg1,..." + _CONSTRUCTOR_SHORTCUT_SUPER_SEP + 
+                            " arg1,...' assumes SuperClass presence")
+                
+                var ctor_args = comma_split(args[1])
+                    
+                klass = function(){
+                    var base_of_ctor_args = arguments.length - ctor_args.length
+                    if (! this[_VALID_INSTANCE_MARKER]) _inst_err()
+                    SuperClass.apply(this, slice(arguments, 0, base_of_ctor_args))
+                    for (var i=0; i < ctor_args.length; i++)
+                        this[ctor_args[i]] = arguments[base_of_ctor_args + i]
+                }
+            } else
+                throw new J.ConstructorError(saved_ctor, "Invalid number of separators in super/constructor shortcut")
         } else
             throw new J.ConstructorError(saved_ctor, "Invalid constructor")
         
@@ -349,14 +358,17 @@ var Jassino = (function() {
             //new Nightmarer("name", "dream")
             //RangeError: Maximum call stack size exceeded
 
-            klass.prototype[SNAME] = function() {
+            var super_constructor = function() {
                 SuperClass.apply(this, arguments)
             }
-
+                          
             //------------------ super method call: use like this.m__SuperClass(method_name, arg1,...) ------------- 
-            klass.prototype[_SUPER_METHOD_CALL_PREF + SNAME] = function(method){
+            super_constructor[_SUPER_METHOD_CALL] = function(method){
                 return SuperClass.prototype[method].apply(this, slice(arguments, 1))
             }
+
+            klass.prototype[SNAME] = super_constructor
+
             //-------------- Class Members inherited from SuperClass --------------------------------------
             _extend(klass, SuperClass);
 
