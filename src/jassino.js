@@ -9,7 +9,7 @@
 *   Inspired by My-class library from Jie Meng-Gerard: https://github.com/jiem/my-class
 */
     
-var Jassino = (function() {
+;(function(Jassino) {
     /*
     * Terminology:
     * class - constructor function F
@@ -45,7 +45,7 @@ var Jassino = (function() {
         _VALID_INSTANCE_MARKER = "__jassino__"
         
     //--------------------------------------------------------------------------------------------------------------
-    var J = {
+    _extend(Jassino, {
         NS: {}, //default namespace
 
         DuplicationError: _make_exc("Duplication"),
@@ -61,9 +61,10 @@ var Jassino = (function() {
                 g.Trait = this.Trait
             }
             
-        },
+    })
+    
         
-        UNDEF = "undefined",
+    var UNDEF = "undefined",
         
         T_FUN = "Function",
         T_STR = "String",
@@ -131,7 +132,7 @@ var Jassino = (function() {
             
             if (prefix.toLowerCase() === _CLASS_MEMBER_PREF){
                 if ( ! class_obj)
-                    throw new J.MembersError(body, "Trait cannot have class (static) members")
+                    throw new Jassino.MembersError(body, "Trait cannot have class (static) members")
                 _inner_extend(class_obj, body[field_name], field_name.slice(_PREFIX_LENGTH));
                 
             }else if (prefix.toLowerCase() === _PROPERTY_PREF){
@@ -163,7 +164,7 @@ var Jassino = (function() {
          * plus removes extra checks in parameters parser
          */
         var ns,
-            AE = J.ArgumentsError,
+            AE = Jassino.ArgumentsError,
             name_pos = 0,
             len = args.length
         
@@ -174,7 +175,7 @@ var Jassino = (function() {
             name_pos++
             ns = args[0]
         }else if(args[0] && is(T_STR, args[0])){
-            ns = J.NS
+            ns = Jassino.NS
         }else{
             throw new AE(args, "First argument should be namespace or name")
         }
@@ -218,12 +219,12 @@ var Jassino = (function() {
 
     function _nsadd(data, obj){
         if (typeof data.ns[data.name] !== UNDEF)
-            throw new J.DuplicationError(data)
+            throw new Jassino.DuplicationError(data)
         data.ns[data.name] = obj
     }
 
     //===================================================================================================================
-    J.Trait = function(){
+    Jassino.Trait = function(){
         var data = _process_args(arguments),
             trait = {};
 
@@ -249,7 +250,7 @@ var Jassino = (function() {
     *    instance_method: function(){}
     * }
      */
-    J.Class = function() {
+    Jassino.Class = function() {
         var data = _process_args(arguments),
             body = data.body,
             SuperClass = data.sclass
@@ -258,7 +259,7 @@ var Jassino = (function() {
             klass,
             //instantiation: new ClassA(), otherwise exception. 
             //It would be more complicated and slow wrapper to allow 'new' omission
-            _inst_err = function(){throw new J.InstantiationError({}, 'use "new": new ClassA()')}
+            _inst_err = function(){throw new Jassino.InstantiationError({}, 'use "new": new ClassA()')}
 
         //------------------------------ creating constructor at declaration time -------------------------------------
         if ( ! saved_ctor)
@@ -280,7 +281,7 @@ var Jassino = (function() {
                 try{
                     saved_ctor.apply(this, arguments)
                 }catch(e){
-                    throw new J.ConstructorError(e.message, 'Probably recursive call from inside of constructor to itself (Did you meant super call?)')
+                    throw new Jassino.ConstructorError(e.message, 'Probably recursive call from inside of constructor to itself (Did you meant super call?)')
                 }
             }
 
@@ -288,7 +289,7 @@ var Jassino = (function() {
             var args = saved_ctor.split(new RegExp('\\s*' + _CONSTRUCTOR_SHORTCUT_SUPER_SEP + '\\s*'))
             if ( args.length === 1){
                 //SPEC: 'arg1, arg2, ...', may be empty
-                if (SuperClass) throw new J.ConstructorError(args[0],
+                if (SuperClass) throw new Jassino.ConstructorError(args[0],
                     "_: 'arg,...' assumes NO SuperClass")
                 klass = function(){
                     if (! this[_VALID_INSTANCE_MARKER]) _inst_err()
@@ -301,7 +302,7 @@ var Jassino = (function() {
                 //SPEC: 'super_arg1, super_arg2, ... ## constructor_arg1, ...', where both strings may be empty
                 //saved_ctor non-empty here due to very first condition
                 //saved_ctor[0] - super agrs, [1] - constructor args
-                if ( ! SuperClass) throw new J.ConstructorError(saved_ctor,
+                if ( ! SuperClass) throw new Jassino.ConstructorError(saved_ctor,
                         "_: 'super_arg1,..." + _CONSTRUCTOR_SHORTCUT_SUPER_SEP + 
                             " arg1,...' assumes SuperClass presence")
                 
@@ -315,9 +316,9 @@ var Jassino = (function() {
                         this[ctor_args[i]] = arguments[base_of_ctor_args + i]
                 }
             } else
-                throw new J.ConstructorError(saved_ctor, "Invalid number of separators in super/constructor shortcut")
+                throw new Jassino.ConstructorError(saved_ctor, "Invalid number of separators in super/constructor shortcut")
         } else
-            throw new J.ConstructorError(saved_ctor, "Invalid constructor")
+            throw new Jassino.ConstructorError(saved_ctor, "Invalid constructor")
         
         _nsadd(data, klass)
 
@@ -407,5 +408,5 @@ var Jassino = (function() {
         return klass;
     }
 
-    return J
-})();
+    return Jassino
+})(typeof module.exports === "undefined" ? Jassino = {} : module.exports);
