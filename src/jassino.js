@@ -409,4 +409,4 @@
     }
 
     return Jassino
-})(typeof module.exports === "undefined" ? Jassino = {} : module.exports);
+})(typeof exports === "undefined" ? Jassino = {} : exports);
