@@ -3,7 +3,7 @@
     "description": "Simple OOP for JavaScript",
     "author": "Denis Volokhovskiy (<den@sketchof.me>)",
     "version": "0.5.1",
-    "main": "./src/jassino.js",
+    "main": "./src/jassino",
     "license": "BSD",
     "scripts": {
         "test": "node test.js"

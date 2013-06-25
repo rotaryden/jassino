@@ -513,7 +513,6 @@ test("Inheritance from usual Prototype-Based pseudo class)", 12, function() {
     A.prototype.ovf = function(){ return [this.a, this.ov];}
 
     Class('T', A, {
-        $: 'A',  //OBLIGATE parameter for natively constructed superclasses !!!
         _:'constr_var ## ',
         t: 'T',
         ov: 'T_ov',

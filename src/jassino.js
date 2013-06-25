@@ -23,7 +23,6 @@
     var 
         //------------ body definitions
         _CONSTRUCTOR       = '_',        //constructor function in body
-        _SUPER_CLASS_NAME  = '$',        //SuperClass name. ONLY in case of inheriting from mere function.
 
         _PREFIX_LENGTH     = 3,
         _CLASS_MEMBER_PREF = "c__",
@@ -144,7 +143,7 @@
                 //put getter/setter into prototype/trait
                 make_it(pure_name)
             
-            }else if (field_name !== _CONSTRUCTOR && field_name !== _SUPER_CLASS_NAME){
+            }else if (field_name !== _CONSTRUCTOR){
                 _inner_extend(trait_or_proto, body[field_name], field_name)
             }
         }
@@ -324,7 +323,7 @@
 
         //------------------------------------- super class handling -----------------------------------------------
         if (SuperClass) {
-            var SNAME = body[_SUPER_CLASS_NAME] || SuperClass[_CLASS_NAME]; //superclass name, body variant works for non-jassino superclasses
+            var SNAME = SuperClass[_CLASS_NAME]; //superclass name, body variant works for non-jassino superclasses
 
             //clone SuperClass prototype chain so protecting SuperClass instance object itself 
             // from overriding in childs => this also guarantees of working calls
