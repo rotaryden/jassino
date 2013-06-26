@@ -1,23 +1,29 @@
 {
-    "name": "jassino",
-    "description": "Simple OOP for JavaScript",
-    "author": "Denis Volokhovskiy (<den@sketchof.me>)",
-    "version": "0.5.1",
-    "main": "./src/jassino",
-    "license": "BSD",
-    "scripts": {
-        "test": "node test.js"
-    },
-    "keywords": [
-      "OOP",
-      "inheritance",
-      "javascript"
-    ],
-    "repository": {
-        "type": "git",
-        "url": "http://github.com/altitudebreath/jassino.git"
-    },
-    "engines": {
-        "node": ">=0.6"
-    }
+  "name": "jassino",
+  "description": "Simple OOP for JavaScript",
+  "author": "Denis Volokhovskiy <den@sketchof.me> (<den@sketchof.me>)",
+  "version": "0.5.1",
+  "main": "./src/jassino",
+  "license": "BSD",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "keywords": [
+    "OOP",
+    "inheritance",
+    "javascript"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/altitudebreath/jassino.git"
+  },
+  "engines": {
+    "node": ">=0.6"
+  },
+  "bugs": {
+    "url": "https://github.com/altitudebreath/jassino/issues"
+  },
+  "directories": {
+    "test": "test"
+  }
 }
