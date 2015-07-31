@@ -60,7 +60,7 @@ test("Rewritten example from my-class (http://myjs.fr/my-class/) - NO INFINITE R
             this.Dreamer(name, dream)
             this.field = this.field.toUpperCase() //control flow should be reached and field created
         },
-        test: function(){ return this.Dreamer.do("old_method") + 
+        test: function(){ return this.Dreamer_call("old_method") + 
                                  this.old_method() +
                                  this.name + " " + this.field + " " + this.dream}
 
