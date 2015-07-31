@@ -324,7 +324,7 @@ test("Multiple instantiation test", function() {
 
     var b = new ns.B()
     ste(b.m(1, 2), 13, "super method test: regular method")
-    ste(b.A.do("m", 1, 2), 4, "super method test: super method")
+    ste(b.A_call("m", 1, 2), 4, "super method test: super method")
 })
 
 //========================================================================================================================
@@ -724,7 +724,7 @@ test("Rewritten example from my-class (http://myjs.fr/my-class/) - NO INFINITE R
             this.Dreamer(name, dream)
             this.field = this.field.toUpperCase() //control flow should be reached and field created
         },
-        test: function(){ return this.Dreamer.do("old_method") + 
+        test: function(){ return this.Dreamer_call("old_method") + 
                                  this.old_method() +
                                  this.name + " " + this.field + " " + this.dream}
 
