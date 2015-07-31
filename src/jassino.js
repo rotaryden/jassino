@@ -35,7 +35,7 @@
         _SUPER_CLASS       = '__super__', //reference to SuperClass in class, compatible with CoffeeScript super call 
 
         //----------------- instance definitions
-        _SUPER_METHOD_CALL    = 'do', //super method call, e.g. this.SuperClass.do("method_name", args,... )
+        _SUPER_METHOD_SUFFIX    = '_call', //super method call, e.g. this.SuperClass.do("method_name", args,... )
 
         _PROP_FIELD_GET_PREF = 'get_',    //prefixes for getters/setters of a property
         _PROP_FIELD_SET_PREF = 'set_',
@@ -362,8 +362,8 @@
                 SuperClass.apply(this, arguments)
             }
                           
-            //------------------ super method call: use like this.m__SuperClass(method_name, arg1,...) ------------- 
-            super_constructor[_SUPER_METHOD_CALL] = function(method){
+            //------------------ super method call: use like this.SuperClass_call(method_name, arg1,...) ------------- 
+            klass.prototype[SNAME + _SUPER_METHOD_SUFFIX] = function(method){
                 return SuperClass.prototype[method].apply(this, slice(arguments, 1))
             }
 
