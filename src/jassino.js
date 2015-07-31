@@ -8,8 +8,7 @@
 *   
 *   Inspired by My-class library from Jie Meng-Gerard: https://github.com/jiem/my-class
 */
-    
-;(function(Jassino) {
+var Jassino = (function(Jassino) {
     /*
     * Terminology:
     * class - constructor function F
@@ -408,4 +407,10 @@
     }
 
     return Jassino
-})(typeof exports === "undefined" ? Jassino = {} : exports);
+})({});
+
+if (typeof global !== "undefined") {
+  global.Class = Jassino.Class;
+  global.Trait = Jassino.Trait;
+};
+
