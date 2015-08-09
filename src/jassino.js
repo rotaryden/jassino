@@ -26,6 +26,7 @@ var Jassino = (function (Jassino) {
         _CONSTRUCTOR = '_',        //constructor function in body
         _SUPER_ARGS = '__',
 
+        _CLASS_MEMBER_PREFIX = 'c_',
     //------------ variables available on the class
         _CLASS_NAME = '__name__',    //class name on the class itself
         _SUPER_CLASS = '__super__', //reference to SuperClass in class, compatible with CoffeeScript super call 
@@ -47,6 +48,7 @@ var Jassino = (function (Jassino) {
         var g = global_obj || window;
         g.Class = Jassino.Class;
         g.Mixin = Jassino.Mixin;
+        g.$$ = Jassino.$$;
         g.Jassino = Jassino;
     };
     
@@ -158,31 +160,32 @@ var Jassino = (function (Jassino) {
         for (var field_name in body) {
             if (body.hasOwnProperty(field_name)) {
                 if (field_name === _CONSTRUCTOR || field_name === _SUPER_ARGS) continue;
+                
+                //assign to what context - instance proto or constructor function (class members)
+                var assignTo = mixin_or_proto;
+                
+                if (field_name.indexOf(_CLASS_MEMBER_PREFIX) === 0){
+                    if (typeof klass !== T_FUN) {
+                        throw new Jassino.MembersError(body, "Mixin cannot have class (static) members");
+                    }
+                    assignTo = klass;
+                }
 
                 var def = body[field_name];
 
-                if (isArray(def) && (def[0] === Jassino.Class.STATIC || def[0] === Jassino.Class.CLS)) {
-                    if (def[0] === Jassino.Class.STATIC) {
-                        if (typeof klass !== T_FUN) {
-                            throw new Jassino.MembersError(body, "Mixin cannot have class (static) members");
-                        }
-                        if (typeof def[1] === T_FUN){
-                            _assign(klass,
-                                _methodPrependWrapper(klass, def[1]),
-                                field_name
-                            );
-                        }else{
-                            _assign(klass, def[1], field_name);
-                        }
-
-                    } else {
-                        _assign(mixin_or_proto,
+                if (isArray(def) && (def[0] in Jassino.$$)) {
+                    if (def[0] === Jassino.$$.cls) {
+                        //only for methods
+                        _assign(assignTo,
+                            //prepend with the constructor function (klass)
                             _methodPrependWrapper(klass, def[1]),
                             field_name
                         );
+                    } else {
+                        _assign(assignTo, def[1], field_name);
                     }
                 } else {
-                    _assign(mixin_or_proto, def, field_name);
+                    _assign(assignTo, def, field_name);
                 }
             }
         }
@@ -498,8 +501,10 @@ var Jassino = (function (Jassino) {
         return klass;
     };
 
-    Jassino.Class.STATIC = {};
-    Jassino.Class.CLS = {};
+    //------------------ Annotations ------------------------------------
+    Jassino.$$ = {
+        cls: "cls", //prepend method arguments with _cls === constructor function
+    };
     
     return Jassino;
 })({});

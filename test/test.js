@@ -15,6 +15,7 @@ function dump(data) {
 
 var Class = Jassino.Class,
     Mixin = Jassino.Mixin,
+    $$ = Jassino.$$,
     ns, _ns = {},
     default_up_down = {
         beforeEach: function () {
@@ -36,6 +37,26 @@ test("Class and Mixin definitions, typeof Class/Mixin === function", 2, function
 });
 
 //========================================================================================================================
+module("Basic namespace tests --", {});
+
+test("default", function() {
+    Class('A', {});
+    Mixin('T', {});
+
+    var N = {};
+    Jassino.setDefaultNS(N);
+    
+    eq(N.A, undefined, 'not added');
+    eq(N.T, undefined, 'not added');
+
+    var A = Class('A', {});
+    var T = Mixin('T', {});
+    
+    eq(A, N.A, 'for Class');
+    eq(T, N.T, 'for Mixin');
+});
+
+
 module("Class/Mixin creation, NameSpaces --", default_up_down);
 
 test("Class/Mixin creation - default namespace", 2, function() {
@@ -261,7 +282,7 @@ test("Explicit shortcut constructor, explicit full constructor, _sup and super m
     Class('X', ns.T, {
         _:'1, 2, 3, d',
         __:3,
-        res: [Class.CLS, function(_cls, additional){
+        res: [$$.cls, function(_cls, additional){
             return this.super(_cls, "res", additional);
         }]
     });
@@ -280,7 +301,7 @@ module("Class instantiation consistency", default_up_down);
 test("Multiple instantiation test", function() {
     Class('A', {
         _: 'x, y',
-        z: [Class.STATIC, 78],
+        c_z: 78,
         a: 4,
         af: function(){return this.a + this.x + this.y}
     });
@@ -295,7 +316,7 @@ test("Multiple instantiation test", function() {
     eq(a.af(), 1 + 2 + 4);
     eq(b.af(), 8 + 16 + 4);
 
-    eq(ns.A.z, 78);
+    eq(ns.A.c_z, 78);
     
 });
 
@@ -330,7 +351,7 @@ test("Multiple instantiation test", function() {
         m:function(a ,b){return 1 + a + b;}
     });
     Class('B', ns.A, {
-        m: [Class.CLS, function(_cls, a, b){return this.super(_cls, "m", 10, 20);}]
+        m: [$$.cls, function(_cls, a, b){return this.super(_cls, "m", 10, 20);}]
     });
 
     eq(ns.A.__name__, 'A', 'A name');
@@ -390,20 +411,20 @@ test("Multiple inheritance", 6, function() {
         ovf: function(){return 'A'},
         anc_ovf: function(){ return 'anc_A';},
         anc_ovf2: function(){ return 'anc_A_2';}
-    })
+    });
     Mixin('B', {
         b: 'b',
         ovf: function(){return 'B'},
         anc_ovf: function(){ return 'anc_B';},
         anc_ovf2: function(){ return 'anc_B_2';}
-    })
+    });
     Mixin('C', {
         c: 'c',
         anc_ovf: function(){ return 'anc_C';}
-    })
+    });
     Mixin('T', [ns.A, ns.B, ns.C], {
         ovf: function(){ return 'T';}
-    })
+    });
     eq(ns.T.a, 'a', 'inherited variable')
     eq(ns.T.b, 'b', 'inherited variable 2')
     eq(ns.T.c, 'c', 'inherited variable 3')
@@ -418,15 +439,15 @@ test("Inheritance transitive law", 4, function() {
         a: 'a',
         ovf: function(){return 'A'},
         anc_ovf: function(){ return 'anc_A';}
-    })
+    });
     Mixin('B', [ns.A], {
         b: 'b',
         ovf: function(){return 'B'},
         anc_ovf: function(){ return 'anc_B';}
-    })
+    });
     Mixin('T', [ns.B], {
         ovf: function(){ return 'T';}
-    })
+    });
     eq(ns.T.a, 'a', 'inherited variable')
     eq(ns.T.b, 'b', 'inherited variable 2')
 
@@ -475,7 +496,7 @@ test("Inheritance: members test", function() {
     Class('A', {
         a: 'a',
         ov: 'ov',
-        c_ov: 78,
+        ex2: 78,
         _:'c1, c2',
         af: function(){return [this.a, this.ov]},
         ovf: function(){ return [this.a, this.ov];}
@@ -496,7 +517,7 @@ test("Inheritance: members test", function() {
     eq(a.ovf()[0], 'a', 'A.ovf() - ancestor\'s members do not corrupted');
     eq(a.ovf()[1], 'ov', 'A.ovf() - ancestor\'s members do not corrupted 2');
 
-    eq(a.c_ov, 78, 'A().c_ov - ancestor\'s members do not corrupted 2');
+    eq(a.ex2, 78, 'A().c_ov - ancestor\'s members do not corrupted 2');
 
     eq(t.t, 'T', 't = "T" - own members not corrupted');
     eq(t.ov, 'T_ov', 't = "T" - own overriden members are correct');
@@ -621,22 +642,22 @@ test("basic test", function() {
         _: 'a',
         b: function(){ return "Hello!"},
         
-        a: [Class.STATIC, 8],
-        bb: [Class.STATIC, function(_cls){ return (ns.T.a + 12) + _cls.__name__}],
-        c: [Class.STATIC, null],            
-        d: [Class.STATIC, undefined]
+        c_a: 8,
+        c_bb: [$$.cls, function(_cls){ return (_cls.c_a + 12) + _cls.__name__}],
+        c_c: null,            
+        c_d: undefined
     });
 
-    eq(ns.T.a, 8, 'static variable');
-    eq(ns.T.bb(), '20T', 'static method');
-    eq(ns.T.c, null, 'robustness test: null');
-    eq(ns.T.d, undefined, 'robustness test: undefined');
+    eq(ns.T.c_a, 8, 'static variable');
+    eq(ns.T.c_bb(), '20T', 'static method');
+    eq(ns.T.c_c, null, 'robustness test: null');
+    eq(ns.T.c_d, undefined, 'robustness test: undefined');
 
     var t = new ns.T(10);
 
-    eq(ns.T.a, 8, 'static variable (not changed by inst.)');
-    eq(ns.T.c, null, 'robustness test: null  (not changed by inst.)');
-    eq(ns.T.d, undefined, 'robustness test: undefined  (not changed by inst.)');
+    eq(ns.T.c_a, 8, 'static variable (not changed by inst.)');
+    eq(ns.T.c_c, null, 'robustness test: null  (not changed by inst.)');
+    eq(ns.T.c_d, undefined, 'robustness test: undefined  (not changed by inst.)');
 
     eq(t.a, 10, 'instance var is not overridden');
 
@@ -670,7 +691,7 @@ test("Rewritten example from my-class (http://myjs.fr/my-class/) - NO INFINITE R
             _sup.call(this, name, dream);
             this.field = this.field.toUpperCase(); //control flow should be reached and field created
         },
-        test: [Class.CLS, function(_cls){ return this.super(_cls, "old_method") + 
+        test: [$$.cls, function(_cls){ return this.super(_cls, "old_method") + 
                                  this.old_method() +
                                  this.name + " " + this.field + " " + this.dream
         }]

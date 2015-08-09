@@ -74,7 +74,8 @@ TODO, for now see
 
 ## CHANGELOG
 
-* 0.9.0 - full rewrite
+* 0.10.0 - breaking changes for class members
+* 0.9.0 - full rewrite - breaking changes
 * v0.5.0 - breaking changes, shortcut constructor changes for super case:  
          'super_a, super_b, ... ## c, d,...',
          jassino is now compatible with CoffeeScript 'super' call for ancestor methods, and super constructor
