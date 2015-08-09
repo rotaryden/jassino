@@ -4,3 +4,4 @@ build
 .project
 .settings
 .pydevproject
+node_modules

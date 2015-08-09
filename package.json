@@ -2,7 +2,7 @@
   "name": "jassino",
   "description": "Simple OOP for JavaScript",
   "author": "Denis Volokhovskiy <den@sketchof.me> (<den@sketchof.me>)",
-  "version": "0.5.1",
+  "version": "0.9.0",
   "main": "./src/jassino",
   "license": "BSD",
   "scripts": {
@@ -25,5 +25,10 @@
   },
   "directories": {
     "test": "test"
+  },
+  "devDependencies": {
+    "node-qunit-phantomjs": "^1.2.1",
+    "phantomjs2.0": "^1.0.0",
+    "uglify-js": "^2.4.24"
   }
 }
