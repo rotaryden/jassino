@@ -301,7 +301,7 @@ module("Class instantiation consistency", default_up_down);
 test("Multiple instantiation test", function() {
     Class('A', {
         _: 'x, y',
-        c_z: 78,
+        clsZ: 78,
         a: 4,
         af: function(){return this.a + this.x + this.y}
     });
@@ -316,7 +316,7 @@ test("Multiple instantiation test", function() {
     eq(a.af(), 1 + 2 + 4);
     eq(b.af(), 8 + 16 + 4);
 
-    eq(ns.A.c_z, 78);
+    eq(ns.A.clsZ, 78);
     
 });
 
@@ -642,22 +642,22 @@ test("basic test", function() {
         _: 'a',
         b: function(){ return "Hello!"},
         
-        c_a: 8,
-        c_bb: [$$.cls, function(_cls){ return (_cls.c_a + 12) + _cls.__name__}],
-        c_c: null,            
-        c_d: undefined
+        clsA: 8,
+        clsBb: function(_cls){ return (_cls.clsA + 12) + _cls.__name__},
+        clsC: null,            
+        clsD: undefined
     });
 
-    eq(ns.T.c_a, 8, 'static variable');
-    eq(ns.T.c_bb(), '20T', 'static method');
-    eq(ns.T.c_c, null, 'robustness test: null');
-    eq(ns.T.c_d, undefined, 'robustness test: undefined');
+    eq(ns.T.clsA, 8, 'static variable');
+    eq(ns.T.clsBb(), '20T', 'static method');
+    eq(ns.T.clsC, null, 'robustness test: null');
+    eq(ns.T.clsD, undefined, 'robustness test: undefined');
 
     var t = new ns.T(10);
 
-    eq(ns.T.c_a, 8, 'static variable (not changed by inst.)');
-    eq(ns.T.c_c, null, 'robustness test: null  (not changed by inst.)');
-    eq(ns.T.c_d, undefined, 'robustness test: undefined  (not changed by inst.)');
+    eq(ns.T.clsA, 8, 'static variable (not changed by inst.)');
+    eq(ns.T.clsC, null, 'robustness test: null  (not changed by inst.)');
+    eq(ns.T.clsD, undefined, 'robustness test: undefined  (not changed by inst.)');
 
     eq(t.a, 10, 'instance var is not overridden');
 

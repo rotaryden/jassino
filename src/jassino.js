@@ -26,7 +26,7 @@ var Jassino = (function (Jassino) {
         _CONSTRUCTOR = '_',        //constructor function in body
         _SUPER_ARGS = '__',
 
-        _CLASS_MEMBER_PREFIX = 'c_',
+        _CLASS_MEMBER_PREFIX = 'cls',
     //------------ variables available on the class
         _CLASS_NAME = '__name__',    //class name on the class itself
         _SUPER_CLASS = '__super__', //reference to SuperClass in class, compatible with CoffeeScript super call 
@@ -155,7 +155,7 @@ var Jassino = (function (Jassino) {
         }
     }
     
-    function _check_suffixes_and_extend(mixin_or_proto, body, klass) {
+    function _check_prefixes_and_extend(mixin_or_proto, body, klass) {
         //wrapper to bypass one-time closure creation inside a cycle
         for (var field_name in body) {
             if (body.hasOwnProperty(field_name)) {
@@ -171,21 +171,36 @@ var Jassino = (function (Jassino) {
                     assignTo = klass;
                 }
 
-                var def = body[field_name];
-
-                if (isArray(def) && (def[0] in Jassino.$$)) {
-                    if (def[0] === Jassino.$$.cls) {
+                var def = body[field_name], 
+                    member, 
+                    decorators = null,
+                    $$ = Jassino.$$;
+                
+                if (isArray(def)){
+                    member = def[def.length - 1];
+                    decorators = def.slice(0, def.length - 1);
+                }else{
+                    member = def;
+                } 
+                
+                if(decorators){
+                    if (typeof member === T_FUN && decorators.indexOf($$.cls) !== -1){
                         //only for methods
                         _assign(assignTo,
                             //prepend with the constructor function (klass)
-                            _methodPrependWrapper(klass, def[1]),
+                            _methodPrependWrapper(klass, member),
                             field_name
                         );
-                    } else {
-                        _assign(assignTo, def[1], field_name);
+                        //}else if (decorators.indexOf($$.anotherDecoratorHere) !== -1){
+                        //}
                     }
                 } else {
-                    _assign(assignTo, def, field_name);
+                    _assign(assignTo, 
+                        //all class methods should be prepended with _cls
+                        ((assignTo === klass && typeof member === T_FUN) ?
+                            _methodPrependWrapper(klass, member) : member
+                        ), 
+                        field_name);
                 }
             }
         }
@@ -292,7 +307,7 @@ var Jassino = (function (Jassino) {
         if (data.body[_CONSTRUCTOR]) throw new AE(data, 
             "Mixin should not contain the constructor!");
         
-        _check_suffixes_and_extend(mixin, data.body);
+        _check_prefixes_and_extend(mixin, data.body);
 
         return mixin;
     };
@@ -482,7 +497,7 @@ var Jassino = (function (Jassino) {
         //--------------------------- 2) extending prototype with instance members --------------------------------------
         //this goes last to provide correct overriding order: if any mixin has the same method, it will be hidden
         //class methods do not matter here as resist on constructor object rather then instance object
-        _check_suffixes_and_extend(klass.prototype, body, klass);
+        _check_prefixes_and_extend(klass.prototype, body, klass);
 
         
         //------------------------------ class name ----------------------------------------------
