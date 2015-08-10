@@ -29,6 +29,7 @@ var Jassino = (function (Jassino) {
         _CLASS_MEMBER_PREFIX = 'cls',
     //------------ variables available on the class
         _CLASS_NAME = '__name__',    //class name on the class itself
+        _CHILD_CLASS = "__child__",
         _SUPER_CLASS = '__super__', //reference to SuperClass in class, compatible with CoffeeScript super call 
 
     //----------------- instance definitions
@@ -147,13 +148,6 @@ var Jassino = (function (Jassino) {
         }
     }
 
-    function _methodPrependWrapper(klass, method){
-        return function(){
-            var args = slice(arguments);
-            args.unshift(klass);
-            return method.apply(this, args);
-        }
-    }
     
     function _check_prefixes_and_extend(mixin_or_proto, body, klass) {
         //wrapper to bypass one-time closure creation inside a cycle
@@ -186,22 +180,18 @@ var Jassino = (function (Jassino) {
                 if(decorators){
                     if (typeof member === T_FUN && decorators.indexOf($$.cls) !== -1){
                         //only for methods
-                        _assign(assignTo,
-                            //prepend with the constructor function (klass)
-                            _methodPrependWrapper(klass, member),
-                            field_name
-                        );
-                        //}else if (decorators.indexOf($$.anotherDecoratorHere) !== -1){
-                        //}
+                        member = $$.cls(klass, member);
+                    }
+                    if (decorators.indexOf($$.cached) !== -1){
+                        member = $$.cached(member);
                     }
                 } else {
-                    _assign(assignTo, 
-                        //all class methods should be prepended with _cls
-                        ((assignTo === klass && typeof member === T_FUN) ?
-                            _methodPrependWrapper(klass, member) : member
-                        ), 
-                        field_name);
+                    //all class methods should be prepended with _cls
+                    member = (assignTo === klass && typeof member === T_FUN) ?
+                        $$.cls(klass, member) : member;                     
                 }
+                
+                _assign(assignTo, member, field_name);
             }
         }
 
@@ -507,8 +497,8 @@ var Jassino = (function (Jassino) {
         //which contains class members exactly
         klass[_CLASS_NAME] = data.name;
         
-        //This always contain LAST class name in the prototype chain!!!
-        klass.prototype[_CLASS_NAME] = data.name;
+        //== This always contain LAST child class in the prototype chain!!! ==
+        klass.prototype[_CHILD_CLASS] = klass;
         
         //--------------------static marker, pointing that object is in the jassino chain----------------------
         klass.prototype[_VALID_INSTANCE_MARKER] = true;
@@ -518,7 +508,25 @@ var Jassino = (function (Jassino) {
 
     //------------------ Annotations ------------------------------------
     Jassino.$$ = {
-        cls: "cls", //prepend method arguments with _cls === constructor function
+        cls: function(klass, method){
+                    return function(){
+                        var args = slice(arguments);
+                        args.unshift(klass);
+                        return method.apply(this, args);
+                    }
+        }, 
+        cached: function (method) {
+            var f =  function () {
+                if (f._cache){
+                    return f._cache;
+                }else{
+                    f._cache = method.apply(this, arguments);
+                    return f._cache;
+                }
+            };
+            f._cache = null;
+            return f;
+        },
     };
     
     return Jassino;

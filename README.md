@@ -74,6 +74,8 @@ TODO, for now see
 
 ## CHANGELOG
 
+* 0.10.2 - improvements in decorators, multiple decorators, 
+cached decorator, more tests
 * 0.10.0 - breaking changes for class members
 * 0.9.0 - full rewrite - breaking changes
 * v0.5.0 - breaking changes, shortcut constructor changes for super case:  

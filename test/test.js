@@ -320,7 +320,7 @@ test("Multiple instantiation test", function() {
     
 });
 
-test("Forgotten 'new'", function() {
+test("Don't forgot the'new' !!!", function() {
     Class('A', {});
     Class('B', ns.A, {});
     Class('C', {_:function(_sup, x){}});
@@ -346,21 +346,42 @@ test("Forgotten 'new'", function() {
 //========================================================================================================================
 module("Class meta definitions", default_up_down);
 
-test("Multiple instantiation test", function() {
+test("Multiple instantiation, __child__, __name__, __super__", function() {
     Class('A', {
-        m:function(a ,b){return 1 + a + b;}
+        m:function(a ,b){return 1 + a + b;},
+        theAMethod: function () {
+            return this.__child__;
+        }
     });
     Class('B', ns.A, {
-        m: [$$.cls, function(_cls, a, b){return this.super(_cls, "m", 10, 20);}]
+        m: [$$.cls, function(_cls, a, b){
+            return this.super(_cls, "m", 10, 20);
+        }],
+        theBMethod: function () {
+            return this.__child__;
+        }
+    });
+    Class('C', ns.B, {
     });
 
     eq(ns.A.__name__, 'A', 'A name');
+
     eq(ns.B.__name__, 'B', 'B name');
-    eq(ns.B.__super__, ns.A, 'A instannce');
+    eq(ns.B.__super__, ns.A, 'A instance');
     eq(ns.B.__super__.__name__, 'A', 'B super name is A');
 
     var b = new ns.B();
     eq(b.m(), 1 + 10 + 20, "super method test: regular method");
+    eq(b.theAMethod(), ns.B, 'B');
+    eq(b.__child__, ns.B, 'B');
+    eq(b.__child__.__name__, 'B', 'B name');
+    
+    var c = new ns.C();
+    eq(c.theAMethod(), ns.C, 'C');
+    eq(c.theBMethod(), ns.C, 'C');
+    eq(c.__child__, ns.C, 'C');
+    eq(c.__child__.__name__, 'C', 'C name');
+    
 });
 
 //========================================================================================================================
@@ -373,14 +394,14 @@ test("Single inheritance", 15, function() {
         ov: 'ov',
         af: function(){return [this.a, this.ov]},
         ovf: function(){ return [this.a, this.ov];}
-    })
+    });
     
     Mixin('T', [ns.A], {
         t: 'T',
         ov: 'T_ov',
         tf: function(){return [this.t, this.ov, this.a];},
         ovf: function(){ return [this.t, this.ov, this.a];}
-    })
+    });
     eq(ns.A.af()[0], 'a', 'A.af() - ancestor\'s members do not corrupted')
     eq(ns.A.af()[1], 'ov', 'A.af() - ancestor\'s members do not corrupted 2')
     eq(ns.A.ovf()[0], 'a', 'A.ovf() - ancestor\'s members do not corrupted')
@@ -425,13 +446,13 @@ test("Multiple inheritance", 6, function() {
     Mixin('T', [ns.A, ns.B, ns.C], {
         ovf: function(){ return 'T';}
     });
-    eq(ns.T.a, 'a', 'inherited variable')
-    eq(ns.T.b, 'b', 'inherited variable 2')
-    eq(ns.T.c, 'c', 'inherited variable 3')
+    eq(ns.T.a, 'a', 'inherited variable');
+    eq(ns.T.b, 'b', 'inherited variable 2');
+    eq(ns.T.c, 'c', 'inherited variable 3');
 
-    eq(ns.T.ovf(), 'T', 'Overriden ovf() -> T.ovf()')
-    eq(ns.T.anc_ovf(), 'anc_C', 'Inheritance order: override 1 - last override in C')
-    eq(ns.T.anc_ovf2(), 'anc_B_2', 'Inheritance order: override 2 - last override in B')
+    eq(ns.T.ovf(), 'T', 'Overriden ovf() -> T.ovf()');
+    eq(ns.T.anc_ovf(), 'anc_C', 'Inheritance order: override 1 - last override in C');
+    eq(ns.T.anc_ovf2(), 'anc_B_2', 'Inheritance order: override 2 - last override in B');
 });
 //========================================================================================================================
 test("Inheritance transitive law", 4, function() {
@@ -448,22 +469,22 @@ test("Inheritance transitive law", 4, function() {
     Mixin('T', [ns.B], {
         ovf: function(){ return 'T';}
     });
-    eq(ns.T.a, 'a', 'inherited variable')
-    eq(ns.T.b, 'b', 'inherited variable 2')
+    eq(ns.T.a, 'a', 'inherited variable');
+    eq(ns.T.b, 'b', 'inherited variable 2');
 
-    eq(ns.T.ovf(), 'T', 'Overriden ovf() -> T.ovf()')
+    eq(ns.T.ovf(), 'T', 'Overriden ovf() -> T.ovf()');
     eq(ns.T.anc_ovf(), 'anc_B', 'Inheritance override stack: last override happened in B')
 });
 //========================================================================================================================
 module("Classes mixed-in with Mixins", default_up_down);
 
 test("Single mixin", 1, function() {
-    Mixin('T1', {t1: "a"})
+    Mixin('T1', {t1: "a"});
 
     Class('C1', [ns.T1], {
         a: "CLS",
         f: function(){return this.a + this.t1}
-    })
+    });
 
     eq((new ns.C1()).f(), "CLSa")
 
@@ -472,19 +493,19 @@ test("Single mixin", 1, function() {
 //-------------------------------------------------------------------------------------------------------------------
 test("Multiple mixins", 2, function() {
     
-    Mixin('T1', {t1: "a", xf: function(){return "1"}})
-    Mixin('T2', {t2: "b"})
-    Mixin('T3', [ns.T2], {t3: function(){return this.t2 + "c"}})
+    Mixin('T1', {t1: "a", xf: function(){return "1"}});
+    Mixin('T2', {t2: "b"});
+    Mixin('T3', [ns.T2], {t3: function(){return this.t2 + "c"}});
 
     Class('C', [ns.T1, ns.T2, ns.T3], {
         a: "CLS",
         xf: function(){return "2"},
         f: function(){return this.a + this.t1 + this.t3()}
-    })
+    });
 
-    var inst = new ns.C()
-    eq(inst.f(), "CLSabc", "accessing members")
-    eq(inst.xf(), "2", "overriding mixin members")
+    var inst = new ns.C();
+    eq(inst.f(), "CLSabc", "accessing members");
+    eq(inst.xf(), "2", "overriding mixin members");
 
 });
 
@@ -528,12 +549,12 @@ test("Inheritance: members test", function() {
     eq(t.tf()[1], 'T_ov', 'Own T.tf(), should correctly access ancestor/overriden fields 2');
     eq(t.tf()[2], 'a', 'Own T.tf(), should correctly access ancestor/overriden fields 3');
 
-    eq(t.af()[0], 'a' , 'Virtual function effect: Inherited A.af() -> T.af(), overriden variables should be changed')
-    eq(t.af()[1], 'T_ov' , 'Virtual function effect: Inherited A.af() -> T.af(), overriden variables should be changed 2')
+    eq(t.af()[0], 'a' , 'Virtual function effect: Inherited A.af() -> T.af(), overriden variables should be changed');
+    eq(t.af()[1], 'T_ov' , 'Virtual function effect: Inherited A.af() -> T.af(), overriden variables should be changed 2');
 
-    eq(t.ovf()[0], 'T', 'Overriden A.ovf() -> T.ovf() - output should be as in T.tf()')
-    eq(t.ovf()[1], 'T_ov', 'Overriden A.ovf() -> T.ovf() - output should be as in T.tf() 2')
-    eq(t.ovf()[2], 'a', 'Overriden A.ovf() -> T.ovf() - output should be as in T.tf() 3')
+    eq(t.ovf()[0], 'T', 'Overriden A.ovf() -> T.ovf() - output should be as in T.tf()');
+    eq(t.ovf()[1], 'T_ov', 'Overriden A.ovf() -> T.ovf() - output should be as in T.tf() 2');
+    eq(t.ovf()[2], 'a', 'Overriden A.ovf() -> T.ovf() - output should be as in T.tf() 3');
 
     eq(t.c_ov, 5, 'T().c_ov - overridden')
 
@@ -663,6 +684,43 @@ test("basic test", function() {
 
 });
 
+
+//========================================================================================================================
+module("Decorators test", default_up_down);
+
+test("cached test", function() {
+    var counter = 0;
+    Class('T', {
+        memento: [$$.cached, function(){ 
+            counter++;
+            return "Hello" + counter;
+        }]
+    });
+    
+    var t = new ns.T();
+    
+    eq(t.memento(), "Hello1", 'first call leads to execution');
+    eq(t.memento(), "Hello1", 'second call - is just a cache');
+    eq(counter, 1, 'counter unchanged');
+
+});
+
+test("multiple decorators", function() {
+    var counter = 0;
+    Class('TheClass', {
+        memento: [$$.cached, $$.cls, function(_cls, arg1){ 
+            counter++;
+            return "Hello" + counter + _cls.__name__ + arg1;
+        }]
+    });
+    
+    var t = new ns.TheClass();
+    
+    eq(t.memento('X'), "Hello1TheClassX", 'first call leads to execution');
+    eq(t.memento('Y'), "Hello1TheClassX", 'second call - is just a cache, X instead of Y');
+    eq(counter, 1, 'counter unchanged');
+
+});
 
 //========================================================================================================================
 module("Class/Mixin combined tests", default_up_down);
