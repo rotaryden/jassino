@@ -150,9 +150,6 @@ test("Explicit constructor", 1, function() {
     Class('T', {
         _: function(_sup, num){
             this.num = num;
-            console.log(dump(_sup));
-            console.log(dump(num));
-            
         },
         a: "zz",
         f: function(){
@@ -282,7 +279,7 @@ test("Explicit shortcut constructor, explicit full constructor, _sup and super m
     Class('X', ns.T, {
         _:'1, 2, 3, d',
         __:3,
-        res: [$$.cls, function(_cls, additional){
+        res: [$$.clsArg, function(_cls, additional){
             return this.super(_cls, "res", additional);
         }]
     });
@@ -290,7 +287,7 @@ test("Explicit shortcut constructor, explicit full constructor, _sup and super m
 
     var t = new ns.X("a", "b", "c", "d");
 
-    eq(t.res("ZZZ"), "abcZZZ", 'supe method call works');
+    eq(t.res("ZZZ"), "abcZZZ", 'super method call works');
     eq(t.d, "d", 'adding parameters to child constructor works')
 });
 
@@ -318,7 +315,7 @@ test("Multiple instantiation test", function() {
     eq(a.af(), 1 + 2 + 4);
     eq(b.af(), 8 + 16 + 4);
 
-    eq(ns.A.Z, 78);
+    eq(ns.A.cls.Z, 78);
     
 });
 
@@ -356,7 +353,7 @@ test("Multiple instantiation, __child__, __name__, __super__", function() {
         }
     });
     Class('B', ns.A, {
-        m: [$$.cls, function(_cls, a, b){
+        m: [$$.clsArg, function(_cls, a, b){
             return this.super(_cls, "m", 10, 20);
         }],
         theBMethod: function () {
@@ -666,27 +663,28 @@ test("basic test", function() {
         b: function(){ return "Hello!"},
         
         cls: {
-            clsA: 8,
-            clsBb: function (_cls) {
-                return (_cls.clsA + 12) + _cls.__name__
+            a: 8,
+            b: function () {
+                return (this.a + 12) + this.__child__.__name__;
             },
-            clsC: null,
-            clsD: undefined
+            c: null,
+            d: undefined
         }
     });
 
-    eq(ns.T.clsA, 8, 'static variable');
-    eq(ns.T.clsBb(), '20T', 'static method');
-    eq(ns.T.clsC, null, 'robustness test: null');
-    eq(ns.T.clsD, undefined, 'robustness test: undefined');
+    eq(ns.T.cls.a, 8, 'static variable');
+    eq(ns.T.cls.b(), '20T', 'static method');
+    eq(ns.T.cls.c, null, 'robustness test: null');
+    eq(ns.T.cls.d, undefined, 'robustness test: undefined');
 
     var t = new ns.T(10);
 
-    eq(ns.T.clsA, 8, 'static variable (not changed by inst.)');
-    eq(ns.T.clsC, null, 'robustness test: null  (not changed by inst.)');
-    eq(ns.T.clsD, undefined, 'robustness test: undefined  (not changed by inst.)');
+    eq(ns.T.cls.a, 8, 'static variable (not changed by inst.)');
+    eq(ns.T.cls.c, null, 'robustness test: null  (not changed by inst.)');
+    eq(ns.T.cls.d, undefined, 'robustness test: undefined  (not changed by inst.)');
 
     eq(t.a, 10, 'instance var is not overridden');
+    eq(t.b(), 'Hello!', 'instance member working ok');
 
 });
 
@@ -714,7 +712,7 @@ test("cached test", function() {
 test("multiple decorators", function() {
     var counter = 0;
     Class('TheClass', {
-        memento: [$$.cached, $$.cls, function(_cls, arg1){ 
+        memento: [$$.cached, $$.clsArg, function(_cls, arg1){ 
             counter++;
             return "Hello" + counter + _cls.__name__ + arg1;
         }]
@@ -755,7 +753,7 @@ test("Rewritten example from my-class (http://myjs.fr/my-class/) - NO INFINITE R
             _sup.call(this, name, dream);
             this.field = this.field.toUpperCase(); //control flow should be reached and field created
         },
-        test: [$$.cls, function(_cls){ return this.super(_cls, "old_method") + 
+        test: [$$.clsArg, function(_cls){ return this.super(_cls, "old_method") + 
                                  this.old_method() +
                                  this.name + " " + this.field + " " + this.dream
         }]
@@ -831,7 +829,7 @@ test("Bees Simplified [not finished]", function() {
         _: function(_sup, name){         //Full form of constructor
             _sup.call(this, 'F');          //super constructor call
             this.name=name;
-            this.wingType = _sup.WINGS.oscillating;
+            this.wingType = _sup.cls.WINGS.oscillating;
         }  //constructor
     });
     

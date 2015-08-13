@@ -2,7 +2,7 @@
  *******************                                   Jassino2                                 ***********************
  *******************      Very light, fast and well tested object orientation in Javascript    ***********************
  *********************************************************************************************************************
- *   version: 0.9.0
+ *   version: 2.0.0
  *
  *   Copyright (c)  Denis Volokhovski, 2015
  *
@@ -26,14 +26,16 @@ var Jassino = (function (Jassino) {
         _CONSTRUCTOR = '_',        //constructor function in body
         _SUPER_ARGS = '__',
 
-        _CLASS_MEMBER_OBJECT = 'cls',
+        _CLASS_MEMBERS_OBJECT = 'cls',
+        _CLASS_MEMBERS_PROTO = '__cls_proto',
+    
     //------------ variables available on the class
         _CLASS_NAME = '__name__',    //class name on the class itself
         _CHILD_CLASS = "__child__",
         _SUPER_CLASS = '__super__', //reference to SuperClass in class, compatible with CoffeeScript super call 
 
     //----------------- instance definitions
-        _SUPER_METHOD_CALL = 'super', //super method call, e.g. this.supercall(_cls, "method_name", args,... )
+        _SUPER_METHOD_CALL = 'super', //super method call, e.g. this.super(_cls, "method_name", args,... )
 
     //----------------- meta data
         _VALID_INSTANCE_MARKER = "__jassino__";
@@ -150,7 +152,7 @@ var Jassino = (function (Jassino) {
 
     
     function _check_prefixes_and_extend(mixin_or_proto, body, klass) {
-        var cls = body[_CLASS_MEMBER_OBJECT];
+        var cls = body[_CLASS_MEMBERS_OBJECT];
         var ctor = body[_CONSTRUCTOR];
         var sup = body[_SUPER_ARGS];
         
@@ -158,28 +160,28 @@ var Jassino = (function (Jassino) {
             if (typeof klass !== T_FUN) {
                 throw new Jassino.MembersError(body, "Mixin cannot have class (static) members");
             }
-            _inner_check_prefixes_and_extend(klass, cls, klass);
+            _inner_check_prefixes_and_extend(klass[_CLASS_MEMBERS_OBJECT], cls, klass);
         }
         
-        if (cls) delete body[_CLASS_MEMBER_OBJECT];
+        if (cls) delete body[_CLASS_MEMBERS_OBJECT];
         if (ctor) delete body[_CONSTRUCTOR];
         if (sup) delete body[_SUPER_ARGS];
 
         _inner_check_prefixes_and_extend(mixin_or_proto, body, klass);
 
-        if (cls) body[_CLASS_MEMBER_OBJECT] = cls;
+        if (cls) body[_CLASS_MEMBERS_OBJECT] = cls;
         if (ctor) body[_CONSTRUCTOR] = ctor;
         if (sup) body[_SUPER_ARGS] = sup;
 
     }
     
-    function _inner_check_prefixes_and_extend(assignTo, body, klass) {
+    function _inner_check_prefixes_and_extend(assignTo, source, klass) {
         //wrapper to bypass one-time closure creation inside a cycle
-        for (var field_name in body) {
-            if (body.hasOwnProperty(field_name)) {
+        for (var field_name in source) {
+            if (source.hasOwnProperty(field_name)) {
                 
                 //assign to what context - instance proto or constructor function (class members)
-                var def = body[field_name], 
+                var def = source[field_name], 
                     member, 
                     decorators = null,
                     $$ = Jassino.$$;
@@ -191,19 +193,21 @@ var Jassino = (function (Jassino) {
                     member = def;
                 } 
                 
+                //there may be special conditions check here 
+                // plus specific decorators order...
                 if(decorators){
-                    if (typeof member === T_FUN && decorators.indexOf($$.cls) !== -1){
+                    //exotic one: when you need to know EXACT class for some method
+                    //(rather then knowing the last __child__ on the chain)
+                    //you may use this class-argument-prepending decorator
+                    //it works for both instance and class members
+                    if (typeof member === T_FUN && decorators.indexOf($$.clsArg) !== -1){
                         //only for methods
-                        member = $$.cls(klass, member);
+                        member = $$.clsArg(klass, member);
                     }
                     if (decorators.indexOf($$.cached) !== -1){
                         member = $$.cached(member);
                     }
-                } else {
-                    //all class methods should be prepended with _cls
-                    member = (assignTo === klass && typeof member === T_FUN) ?
-                        $$.cls(klass, member) : member;                     
-                }
+                } 
                 
                 _assign(assignTo, member, field_name);
             }
@@ -475,10 +479,18 @@ var Jassino = (function (Jassino) {
             //RangeError: Maximum call stack size exceeded
 
             //-------------- Class Members inherited from SuperClass --------------------------------------
-            _extend(klass, SuperClass);
+            //inherit from prototype, not 'cls' object - because class members
+            //may modify 'cls' object by dynamic non-relevant properties
+            //(e.g. database instance etc)
+            klass[_CLASS_MEMBERS_OBJECT] = SuperClass[_CLASS_MEMBERS_PROTO] ?
+                Object.create(SuperClass[_CLASS_MEMBERS_PROTO]) :
+                {};
 
-            //------------------ super method call: use like this.SuperClass_call(method_name, arg1,...) ------------- 
+            //------------------ super method call ------------------------------------------
+            // use like this.super(_cls, method_name, arg1,...)
+            // you may need $$.clsArg decorator to keep precise classes
             klass.prototype[_SUPER_METHOD_CALL] = function (_cls, method) {
+                console.log(_cls);
                 return _cls[_SUPER_CLASS].prototype[method].apply(this, slice(arguments, 2))
             };
 
@@ -486,23 +498,34 @@ var Jassino = (function (Jassino) {
             //WARNING! this should go AFTER _extend() with SuperClass
             klass[_SUPER_CLASS] = SuperClass;
 
+        }else {
+            klass[_CLASS_MEMBERS_OBJECT] = {};
         }
-
         //--------------------------- mixins handling -----------------------------------------------
         //mix all members from mixins
         if (data.smixins) {
-            _mix(klass.prototype, data.smixins)
+            _mix(klass.prototype, data.smixins);
         }
 
         //------------------------------ 1) extending class with class/static members, ------------------------------
         //add "class" members from _CLS variable to constructor(class) object, 
         // so accessing like ClassA.static_member()
         //will override Super Class class members with the same name
-        //--------------------------- 2) extending prototype with instance members --------------------------------------
+
+        //--------------------------- 2) extending prototype with class and instance members --------------------------------------
         //this goes last to provide correct overriding order: if any mixin has the same method, it will be hidden
         //class methods do not matter here as resist on constructor object rather then instance object
         _check_prefixes_and_extend(klass.prototype, body, klass);
 
+        //--------------------------- 3) making class members proto for children --------------------------------------
+        //all further runtime-assigned properties in klass.cls will not go to this prototype
+        //that is what intended to be
+        klass[_CLASS_MEMBERS_PROTO] = Object.create(klass[_CLASS_MEMBERS_OBJECT]); 
+        
+        //--------------------------- 4) adding klass.cls:this.__child__ --------------------------------------
+        //It will work like 'this' for object prototypical hierarchy
+        //_CHILD_CLASS is rewritten for every child class
+        klass[_CLASS_MEMBERS_OBJECT][_CHILD_CLASS] = klass;
         
         //------------------------------ class name ----------------------------------------------
         //WARNING!     do this AFTER extending with SuperClass, otherwise class variables are overriden
@@ -511,7 +534,8 @@ var Jassino = (function (Jassino) {
         //which contains class members exactly
         klass[_CLASS_NAME] = data.name;
         
-        //== This always contain LAST child class in the prototype chain!!! ==
+        //== this.__child__ and cls.__child__ 
+        // always contain LAST child class in the prototype chain!!! ==
         klass.prototype[_CHILD_CLASS] = klass;
         
         //--------------------static marker, pointing that object is in the jassino chain----------------------
@@ -522,7 +546,7 @@ var Jassino = (function (Jassino) {
 
     //------------------ Annotations ------------------------------------
     Jassino.$$ = {
-        cls: function(klass, method){
+        clsArg: function(klass, method){
                     return function(){
                         var args = slice(arguments);
                         args.unshift(klass);
