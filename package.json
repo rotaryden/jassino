@@ -2,7 +2,7 @@
   "name": "jassino",
   "description": "Simple OOP for JavaScript",
   "author": "Denis Volokhovskiy <den@sketchof.me> (<den@sketchof.me>)",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "main": "./src/jassino",
   "license": { "type": "MIT"
       , "url": "http://www.opensource.org/licenses/mit-license.php"

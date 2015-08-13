@@ -185,6 +185,11 @@ TODO, for now see
 
 ## CHANGELOG
 
+* 2.0.0 - class members syntax changed, 
+- there are 2 hierachies: instances and class member objects
+- constructor accepts now the class, not superclass,
+- and more
+* 1.0.0 WIP, many changes
 * 0.10.2 - improvements in decorators, multiple decorators, 
 cached decorator, more tests
 * 0.10.0 - breaking changes for class members

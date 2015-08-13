@@ -148,7 +148,7 @@ module("Class constructors", default_up_down);
 //-------------------------------------------------------------------------------------------------------------------
 test("Explicit constructor", 1, function() {
     Class('T', {
-        _: function(_sup, num){
+        _: function(_cls, num){
             this.num = num;
         },
         a: "zz",
@@ -165,7 +165,7 @@ test("Explicit constructor", 1, function() {
 //-------------------------------------------------------------------------------------------------------------------
 test("Implicit constructor", 1, function() {
     Class('A', {
-        _:function(_sup, ancestor_name){
+        _:function(_cls, ancestor_name){
             this.a = "ancestor";
             this.b = ancestor_name;
         }
@@ -231,8 +231,8 @@ test("Explicit shortcut constructor with super class", function() {
     Class('A', {
         protovar: "proto",
         
-        _:function(_sup, ancestorName){
-            this.rootSuper = _sup;
+        _:function(_cls, ancestorName){
+            this.rootSuper = _cls.__super__;
             this.a = "ancestor";
             this.a1 = ancestorName;
         }
@@ -252,22 +252,22 @@ test("Explicit shortcut constructor with super class", function() {
 
     var t = new ns.T("Sam", "b", "c");
 
-    eq(t.rootSuper, null, '1st cclass has no super, and null passed to _sup');
+    eq(t.rootSuper, undefined, '1st cclass has no super');
     eq(t.anyname1, undefined, 'ancestor arguments are not defined');
     eq(t.anyname2, undefined, 'ancestor arguments are not defined');
     eq(t.anynameX, undefined, 'ancestor arguments are not defined');
     eq(t.res(), "proto ancestor Sam b c", 'work properly with super classes, ignores extra parameters')
 });
 
-test("Explicit shortcut constructor, explicit full constructor, _sup and super method call", function() {
+test("Explicit shortcut constructor, explicit full constructor, __super__ and super method call", function() {
 
     Class('A', {
         _: 'a, b'
     });
 
     Class('T', ns.A, {
-        _: function(_sup, a, b, c){
-            _sup.call(this, a, b);
+        _: function(_cls, a, b, c){
+            this.super(_cls, a, b);
             this.c = c;
         },
         res: function(additional){
@@ -280,7 +280,7 @@ test("Explicit shortcut constructor, explicit full constructor, _sup and super m
         _:'1, 2, 3, d',
         __:3,
         res: [$$.clsArg, function(_cls, additional){
-            return this.super(_cls, "res", additional);
+            return this.supercall(_cls, "res", additional);
         }]
     });
 
@@ -322,7 +322,7 @@ test("Multiple instantiation test", function() {
 test("Don't forgot the'new' !!!", function() {
     Class('A', {});
     Class('B', ns.A, {});
-    Class('C', {_:function(_sup, x){}});
+    Class('C', {_:function(_cls, x){}});
     Class('D', ns.C, {
         _:'x, y',
         __:1
@@ -354,7 +354,7 @@ test("Multiple instantiation, __child__, __name__, __super__", function() {
     });
     Class('B', ns.A, {
         m: [$$.clsArg, function(_cls, a, b){
-            return this.super(_cls, "m", 10, 20);
+            return this.supercall(_cls, "m", 10, 20);
         }],
         theBMethod: function () {
             return this.__child__;
@@ -633,7 +633,7 @@ test("DEEP inheritance", 1, function() {
 
     Class(nspace, 'C0', {
         get_accum: function(){ return this.accum },
-        _: function(_sup, i){
+        _: function(_cls, i){
             this.accum += "{C0: {}}"
         }  //constructor
     });
@@ -643,9 +643,9 @@ test("DEEP inheritance", 1, function() {
         var ancestor = 'C' + (i - 1).toString();
 
         Class(nspace, self, nspace[ancestor], {
-            _: function(_sup, i){
+            _: function(_cls, i){
                 this.accum = '{C' + i.toString() + ": " + (this.accum || "");
-                _sup.call(this, i - 1);
+                this.super(_cls, i - 1);
                 this.accum += "}"
             }  //constructor
         })
@@ -733,7 +733,7 @@ module("Class/Mixin combined tests", default_up_down);
 test("Rewritten example from my-class (http://myjs.fr/my-class/) - NO INFINITE RECURSION!", 1, function() {
     Class('Person', {
         old_method: function(){ return "Hey!, "},
-        _: function(_sup, name){
+        _: function(_cls, name){
             this.name=name
         }  //constructor
     });
@@ -749,11 +749,11 @@ test("Rewritten example from my-class (http://myjs.fr/my-class/) - NO INFINITE R
         
         old_method: function(){ return "Okay, "}, //overriding
         
-        _:function(_sup, name, dream){
-            _sup.call(this, name, dream);
+        _:function(_cls, name, dream){
+            this.super(_cls, name, dream);
             this.field = this.field.toUpperCase(); //control flow should be reached and field created
         },
-        test: [$$.clsArg, function(_cls){ return this.super(_cls, "old_method") + 
+        test: [$$.clsArg, function(_cls){ return this.supercall(_cls, "old_method") + 
                                  this.old_method() +
                                  this.name + " " + this.field + " " + this.dream
         }]
@@ -814,8 +814,8 @@ test("Bees Simplified [not finished]", function() {
     });
 
     Class(Bees, 'FemaleBee', Bee, {
-        _: function(_sup, name){         //Explicit constructor
-            _sup.call(this,'F');          //super constructor call
+        _: function(_cls, name){         //Explicit constructor
+            this.super(_cls,'F');          //super constructor call
             this.name=name;
         }  //constructor
     });
@@ -826,10 +826,10 @@ test("Bees Simplified [not finished]", function() {
     });
 
     Class(Bees, 'Queen', Bees.FemaleBee, {               
-        _: function(_sup, name){         //Full form of constructor
-            _sup.call(this, 'F');          //super constructor call
+        _: function(_cls, name){         //Full form of constructor
+            this.super(_cls, 'F');          //super constructor call
             this.name=name;
-            this.wingType = _sup.cls.WINGS.oscillating;
+            this.wingType = _cls.cls.WINGS.oscillating;
         }  //constructor
     });
     

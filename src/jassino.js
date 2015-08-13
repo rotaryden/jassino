@@ -35,7 +35,8 @@ var Jassino = (function (Jassino) {
         _SUPER_CLASS = '__super__', //reference to SuperClass in class, compatible with CoffeeScript super call 
 
     //----------------- instance definitions
-        _SUPER_METHOD_CALL = 'super', //super method call, e.g. this.super(_cls, "method_name", args,... )
+        _SUPER_CONSTRUCTOR_CALL = 'super', //super constructor call, e.g. this.super(_cls, args,... )
+        _SUPER_METHOD_CALL = 'supercall', //super method call, e.g. this.supercall(_cls, "method_name", args,... )
 
     //----------------- meta data
         _VALID_INSTANCE_MARKER = "__jassino__";
@@ -389,11 +390,11 @@ var Jassino = (function (Jassino) {
             // super constructor call (if needed) must be done as super.call(this, ...)
             // super constructor is a wrapper as well, so it will populate the inner-constructor 
             // with leading Super-SuperClass automatically
-            klass = function () {
+            klass = function _klass() {
                 if (!this[_VALID_INSTANCE_MARKER]) _inst_err();
                 try {
                     var args = slice(arguments);
-                    args.unshift(SuperClass);
+                    args.unshift(_klass);
                     saved_ctor.apply(this, args);
                 } catch (e) {
                     throw new Jassino.ConstructorError(e.message,
@@ -487,10 +488,16 @@ var Jassino = (function (Jassino) {
                 {};
 
             //------------------ super method call ------------------------------------------
-            // use like this.super(_cls, method_name, arg1,...)
+            // use like this.super(_cls, arg1,...)
+            // you may need $$.clsArg decorator to keep precise classes
+            klass.prototype[_SUPER_CONSTRUCTOR_CALL] = function (_cls) {
+                return _cls[_SUPER_CLASS].apply(this, slice(arguments, 1))
+            };
+
+            //------------------ super method call ------------------------------------------
+            // use like this.supercall(_cls, method_name, arg1,...)
             // you may need $$.clsArg decorator to keep precise classes
             klass.prototype[_SUPER_METHOD_CALL] = function (_cls, method) {
-                console.log(_cls);
                 return _cls[_SUPER_CLASS].prototype[method].apply(this, slice(arguments, 2))
             };
 
