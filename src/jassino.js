@@ -26,7 +26,7 @@ var Jassino = (function (Jassino) {
         _CONSTRUCTOR = '_',        //constructor function in body
         _SUPER_ARGS = '__',
 
-        _CLASS_MEMBER_PREFIX = 'cls',
+        _CLASS_MEMBER_OBJECT = 'cls',
     //------------ variables available on the class
         _CLASS_NAME = '__name__',    //class name on the class itself
         _CHILD_CLASS = "__child__",
@@ -150,21 +150,35 @@ var Jassino = (function (Jassino) {
 
     
     function _check_prefixes_and_extend(mixin_or_proto, body, klass) {
+        var cls = body[_CLASS_MEMBER_OBJECT];
+        var ctor = body[_CONSTRUCTOR];
+        var sup = body[_SUPER_ARGS];
+        
+        if (cls){
+            if (typeof klass !== T_FUN) {
+                throw new Jassino.MembersError(body, "Mixin cannot have class (static) members");
+            }
+            _inner_check_prefixes_and_extend(klass, cls, klass);
+        }
+        
+        if (cls) delete body[_CLASS_MEMBER_OBJECT];
+        if (ctor) delete body[_CONSTRUCTOR];
+        if (sup) delete body[_SUPER_ARGS];
+
+        _inner_check_prefixes_and_extend(mixin_or_proto, body, klass);
+
+        if (cls) body[_CLASS_MEMBER_OBJECT] = cls;
+        if (ctor) body[_CONSTRUCTOR] = ctor;
+        if (sup) body[_SUPER_ARGS] = sup;
+
+    }
+    
+    function _inner_check_prefixes_and_extend(assignTo, body, klass) {
         //wrapper to bypass one-time closure creation inside a cycle
         for (var field_name in body) {
             if (body.hasOwnProperty(field_name)) {
-                if (field_name === _CONSTRUCTOR || field_name === _SUPER_ARGS) continue;
                 
                 //assign to what context - instance proto or constructor function (class members)
-                var assignTo = mixin_or_proto;
-                
-                if (field_name.indexOf(_CLASS_MEMBER_PREFIX) === 0){
-                    if (typeof klass !== T_FUN) {
-                        throw new Jassino.MembersError(body, "Mixin cannot have class (static) members");
-                    }
-                    assignTo = klass;
-                }
-
                 var def = body[field_name], 
                     member, 
                     decorators = null,

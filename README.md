@@ -19,40 +19,151 @@ Light, fast, small and well tested OOP in Javascript.
 
 ## At a glance
 ```javascript
-test("Rewritten example from my-class (http://myjs.fr/my-class/) - NO INFINITE RECURSION!", 1, function() {
-    Class('Person', {
-        old_method: function(){ return "Hey!, "},
-        _: function(_sup, name){
-            this.name=name
+    Jassino.setDefaultNS(window);
+
+    //Namespace. It may contain members as well
+    var Bees = {};
+    
+    //---------------------------------------------------------------
+    Mixin('Movable', {        
+        total_distance: 0,
+        location: {x:0, y:0},  //var members also possible in mixins, 
+        move_to: function(loc){
+            var t = this;
+            t.total_distance = t.total_distance + Math.sqrt( Math.pow(loc.x - t.location.x, 2) 
+                + Math.pow(loc.y - t.location.y, 2) );
+            t.location = loc
+        }
+    });
+
+    Mixin(Bees, 'Flyable', [Movable], {     //explicit namespace
+        flight_hours: 0,
+        fly_to: function(loc){ 
+            this.move_to(loc);
+            this.flight_hours = this.total_distance * 0.001 // hours per meter
+        }
+    });
+
+    Mixin('Workable', {   
+        work_on: function(place){return "Working on " + place.toString()}
+    });
+
+    //---------------------------------------------------------------
+    Class('Bee', {             
+        _: 'name, lifespan',
+        cls: {
+            WINGS: {
+                oscillating: 1
+            }
+        }
+    });
+
+    Class(Bees, 'FemaleBee', Bee, {
+        _: function(_sup, name){         //Explicit constructor
+            _sup.call(this,'F');          //super constructor call
+            this.name=name;
         }  //constructor
     });
 
-    Class('Dreamer', ns.Person, {
-        _:'name, dream',  //constructor shortcut: name -> super call, dream -> this.dream
-        __: 1
+    Class(Bees, 'MaleBee', Bee, [Bees.Flyable], {
+        _: 'name, lifespan',
+        __: 2
     });
 
-    var custom_ns = {};
-    Class(custom_ns, 'Nightmarer', ns.Dreamer, {
-        field: "dreams about",  //"instance constant" - added to every instance, may be overridden in constructor
-        
-        old_method: function(){ return "Okay, "}, //overriding
-        
-        _:function(_sup, name, dream){
-            _sup.call(this, name, dream);
-            this.field = this.field.toUpperCase(); //control flow should be reached and field created
-        },
-        test: [Class.CLS, function(_cls){ return this.super(_cls, "old_method") + 
-                                 this.old_method() +
-                                 this.name + " " + this.field + " " + this.dream
-        }]
-
+    Class(Bees, 'Queen', Bees.FemaleBee, {               
+        _: function(_sup, name){         //Full form of constructor
+            _sup.call(this, 'F');          //super constructor call
+            this.name=name;
+            this.wingType = _sup.WINGS.oscillating;
+        }  //constructor
     });
-
-    var nm = new custom_ns.Nightmarer("Lissa", "Pie");
     
-    strictEqual(nm.test(), "Hey!, Okay, Lissa DREAMS ABOUT Pie", "test to not go into infinite recursion!")
-});
+    Class(Bees, 'Worker', Bees.FemaleBee, [Workable, Bees.Flyable], {
+        //Sort Constructor form, means: 
+        // On declaration time, generate constructor accepting 2 parameters,
+        // first parameter pass to super constructor
+        // second parameter write to this.name 
+        _: 'gender, name',
+        __:1,
+        get_productiveness: function(){ return this.productiveness }
+    });
+    //----------------------------------------------------------------------------------------------
+    var Places = {};
+
+    function Place(visitors_capacity){                //native prototype-based class         
+        this.visitors_capacity = visitors_capacity
+        this.visitors = []
+    }
+    Place.prototype.add_visitor = function(vis){
+        if (this.visitors.length < this.visitors_capacity){
+            this.visitors_capacity.push(vis);
+            return true
+        }else{
+            return false
+        }
+    };
+    Place.prototype.remove_visitor = function(vis){
+        if (this.visitors.length < this.visitors_capacity){
+            this.visitors_capacity.push(vis);
+            return true
+        }else{
+            return false
+        }
+    };
+
+    Class(Places, 'Plant', Place, {
+        $: 'Place'  //inheriting from native pseudo class requires its explicit name
+    });
+
+    Class(Places, 'Flower', Places.Plant, {
+        nectar: 5,
+        full_amount: 5,
+        restore_point: -5,
+        get_nectar: function(){ 
+            var t = this;
+            if (t.nectar < t.restore_point){
+                t.nectar = t.full_amount
+            }
+            this.nectar > 0 ? (this.nectar--, 1) : 0 }
+    });
+
+
+    Class(Places, 'Weed', Places.Plant, {
+        nectar: 0,
+        get_nectar: function(){ this.nectar ? (this.nectar--, 1) : 0 }
+    });
+
+    //----------------------------------------------------------------------------------------------
+    Class('BeeKeeper', [Workable], {
+        
+    });
+
+    //---------------------------------------------------------------
+
+    Class(Places, 'Hive', Place, [Movable], {
+        //Constructor shortcut (SuperClass-less form)
+        //means: take first argument from constructor and place it into this.bees
+        _: 'visitors_capacity, bees',
+        __: 1,
+
+        get_most_productive: function(){
+            if ( ! this.bees) return null;s
+            var most = bees[0];
+            for (var bee in this.bees){
+                if (bee.get_productiveness() > most.get_productiveness())
+                    most = bee;
+            }
+            return most
+        }
+    });
+
+    //***************************************************************************
+    var hive = new Places.Hive(20, //20 visitors max
+                      [new Bees.Queen('')])
+    //hive.get_most_productive().gather(place)
+    
+    var queen = new Bees.Queen('Victoria');
+    
  ```
  
 ## Installation

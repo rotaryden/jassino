@@ -301,7 +301,9 @@ module("Class instantiation consistency", default_up_down);
 test("Multiple instantiation test", function() {
     Class('A', {
         _: 'x, y',
-        clsZ: 78,
+        cls: {
+            Z: 78
+        },
         a: 4,
         af: function(){return this.a + this.x + this.y}
     });
@@ -316,7 +318,7 @@ test("Multiple instantiation test", function() {
     eq(a.af(), 1 + 2 + 4);
     eq(b.af(), 8 + 16 + 4);
 
-    eq(ns.A.clsZ, 78);
+    eq(ns.A.Z, 78);
     
 });
 
@@ -663,10 +665,14 @@ test("basic test", function() {
         _: 'a',
         b: function(){ return "Hello!"},
         
-        clsA: 8,
-        clsBb: function(_cls){ return (_cls.clsA + 12) + _cls.__name__},
-        clsC: null,            
-        clsD: undefined
+        cls: {
+            clsA: 8,
+            clsBb: function (_cls) {
+                return (_cls.clsA + 12) + _cls.__name__
+            },
+            clsC: null,
+            clsD: undefined
+        }
     });
 
     eq(ns.T.clsA, 8, 'static variable');
@@ -801,7 +807,12 @@ test("Bees Simplified [not finished]", function() {
 
     //---------------------------------------------------------------
     Class('Bee', {             
-        _: 'name, lifespan'
+        _: 'name, lifespan',
+        cls: {
+            WINGS: {
+                oscillating: 1
+            }
+        }
     });
 
     Class(Bees, 'FemaleBee', Bee, {
@@ -820,6 +831,7 @@ test("Bees Simplified [not finished]", function() {
         _: function(_sup, name){         //Full form of constructor
             _sup.call(this, 'F');          //super constructor call
             this.name=name;
+            this.wingType = _sup.WINGS.oscillating;
         }  //constructor
     });
     
@@ -907,6 +919,9 @@ test("Bees Simplified [not finished]", function() {
                       [new Bees.Queen('')])
     //hive.get_most_productive().gather(place)
     
+    var queen = new Bees.Queen('Victoria');
+    
+    eq(queen.wingType, 1);
     eq(1,1, "stub")
 });
 
