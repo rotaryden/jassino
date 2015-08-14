@@ -1,12 +1,12 @@
 /********************************************************************************************************************
- *******************                                   Jassino2                                 ***********************
+ *******************                                   Jassino                                 ***********************
  *******************      Very light, fast and well tested object orientation in Javascript    ***********************
  *********************************************************************************************************************
- *   version: 2.0.0
+ *   version: 2.0.1
  *
  *   Copyright (c)  Denis Volokhovski, 2015
  *
- *   Inspired by My-class library from Jie Meng-Gerard: https://github.com/jiem/my-class
+ *   (Inspired by My-class library from Jie Meng-Gerard: https://github.com/jiem/my-class)
  */
 "use strict";
 
@@ -31,7 +31,7 @@ var Jassino = (function (Jassino) {
     
     //------------ variables available on the class
         _CLASS_NAME = '__name__',    //class name on the class itself
-        _CHILD_CLASS = "__child__",
+        _CHILD_CLASS = "__child__",  //the last leaf(child) class is acquiring the given member via class or instance inheritance
         _SUPER_CLASS = '__super__', //reference to SuperClass in class, compatible with CoffeeScript super call 
 
     //----------------- instance definitions
@@ -323,37 +323,43 @@ var Jassino = (function (Jassino) {
 
     //===================================================================================================================
     /*
-     * USAGE:
-     * 
-     * var ClassName = //optional
-     * Class( optionalNamespace, "ClassName", SuperClass, [Mixin1, Mixin2], {
-     *    _: function(_sup, a, b, c, d){ 
-     *        this.super(_sup, a, b);
-     *        ....
-     *    },
-     *    //-------------- OR equivalent ---------------
-     *    _: 'a,b,c, d',
-     *    __: 2,
-     *    //-----------
-     *    
-     *    methodWithClassInst__c: function(a, b){
-     *        this.supercall(_cls, "methodName", c, d);
-     *    }
-     *    prop: 5,
-     *    method: function(){}
-     *    
-     *    
-     *    staticVar__s: 1, 
-     *    staticMethod__s: function(){}
-     *    },
-     *    staticMethodWithClassInst__cs: function(_cls, a, b){
-     *        _cls.anotherStaticMethod(c, d);
-     *    }
-     *    
-     * }
-     * ...
-     * optionalNamespace.ClassName.staticMethod(a, b);
-     * ClassName.staticMethodWithClassInst(a, b);
+      USAGE:
+      
+      var ClassName = //optional
+      Class( optionalNamespace, "ClassName", SuperClass, [Mixin1, Mixin2], {
+         _: function(a, b, c, d){ 
+             this.super(a, b);
+             ....
+         },
+         //-------------- OR equivalent ---------------
+         _: 'a,b,c, d',
+         __: 2,
+         //-----------
+         
+         methodWithClassInst: [Jassino.$$.clsArg, function(a, b){
+             console.log(this.__cls__); // present
+             this.supercall("methodName", c, d);
+         }],
+         prop: 5,
+         method: function(){}
+         
+         cls: {
+             classVar: 1, 
+             classMethod: function(){}
+                 //this points to instance_this.__child__.cls here
+                 var cls = this;
+                 //the latest overridden-in-child class method to be called
+                 cls.anotherPolymorphicClassMethod(c, d); 
+             },
+             
+             classMethodWithClassInst: [Jassino.$$.clsArg, function(_cls, a, b){
+                 _cls.cls.anotherExactClassMethod(c, d);
+             }]
+         }
+      }
+      ...
+      optionalNamespace.ClassName.classMethod(a, b);
+      ClassName.classMethodWithClassInst(a, b);
      */
     Jassino.Class = function () {
         var data = _process_args(arguments),
@@ -455,39 +461,39 @@ var Jassino = (function (Jassino) {
 
             klass.prototype.constructor = klass;
 
-            //----------------- instance-level super reference -> super constructor -------------
-            //this.SuperClassName(args), this points to instance
-            //WARNING!!! picking name         $SuperClassName        rather then 'super' or so is essential,
-            //general names work incorrectly in prototype chain with several levels of inheritance
-            //we need to point exactly to the class super should belong to
-
-            //Counter-example (from http://myjs.fr/my-class/):
-            //function Person(name) {
-            //    this.name = name;
-            //};
-            //function Dreamer(name, dream) {
-            //    //accessing superclass with this.superclass: DANGEROUS
-            //    this.superclass.constructor.call(this, name);
-            //    this.dream = dream;
-            //}
-            //Dreamer.prototype.superclass = Person.prototype;
-            //function Nightmarer(name, dream) {
-            //    this.superclass.constructor.call(this, name, dream); //infinite loop
-            //    this.field = "will never be accessed";
-            //}
-            //Nightmarer.prototype.superclass = Dreamer.prototype;
-            //new Nightmarer("name", "dream")
-            //RangeError: Maximum call stack size exceeded
-
             //-------------- Class Members inherited from SuperClass --------------------------------------
             //inherit from prototype, not 'cls' object - because class members
             //may modify 'cls' object by dynamic non-relevant properties
             //(e.g. database instance etc)
-            klass[_CLASS_MEMBERS_OBJECT] = SuperClass[_CLASS_MEMBERS_PROTO] ?
+            klass[_CLASS_MEMBERS_OBJECT] = SuperClass[_CLASS_MEMBERS_PROTO] ? //safe for plain "prototypical classes"
                 Object.create(SuperClass[_CLASS_MEMBERS_PROTO]) :
                 {};
 
-            //------------------ super method call ------------------------------------------
+            //------------------ super constructor call -----------------------------------------------------------
+            /*
+                Super call cannot be independent from the exact class (_cls in this case)
+                Pseudo-code counter-example for this case (from http://myjs.fr/my-class/):
+                
+                function Person(name) {
+                    this.name = name;
+                };
+                function Dreamer(name, dream) {
+                    //accessing superclass with this.superclass: DANGEROUS
+                    this.superclass.constructor.call(this, name);
+                    this.dream = dream;
+                }
+                Dreamer.prototype.superclass = Person.prototype;
+                function Nightmarer(name, dream) {
+                    this.superclass.constructor.call(this, name, dream); //infinite loop
+                    this.field = "will never be accessed";
+                }
+                Nightmarer.prototype.superclass = Dreamer.prototype;
+                new Nightmarer("name", "dream")
+
+                >>>>>>>> RangeError: Maximum call stack size exceeded
+                super reference stay at the same object, because 'this' stay the same in all methods
+            */
+
             // use like this.super(_cls, arg1,...)
             // you may need $$.clsArg decorator to keep precise classes
             klass.prototype[_SUPER_CONSTRUCTOR_CALL] = function (_cls) {
@@ -514,22 +520,17 @@ var Jassino = (function (Jassino) {
             _mix(klass.prototype, data.smixins);
         }
 
-        //------------------------------ 1) extending class with class/static members, ------------------------------
-        //add "class" members from _CLS variable to constructor(class) object, 
-        // so accessing like ClassA.static_member()
-        //will override Super Class class members with the same name
-
-        //--------------------------- 2) extending prototype with class and instance members --------------------------------------
+        //--------------------------- 1) extending prototype with class and instance members --------------------------------------
         //this goes last to provide correct overriding order: if any mixin has the same method, it will be hidden
         //class methods do not matter here as resist on constructor object rather then instance object
         _check_prefixes_and_extend(klass.prototype, body, klass);
 
-        //--------------------------- 3) making class members proto for children --------------------------------------
+        //--------------------------- 2) making class members proto for children --------------------------------------
         //all further runtime-assigned properties in klass.cls will not go to this prototype
         //that is what intended to be
         klass[_CLASS_MEMBERS_PROTO] = Object.create(klass[_CLASS_MEMBERS_OBJECT]); 
         
-        //--------------------------- 4) adding klass.cls:this.__child__ --------------------------------------
+        //--------------------------- 3) adding klass.cls:this.__child__ --------------------------------------
         //It will work like 'this' for object prototypical hierarchy
         //_CHILD_CLASS is rewritten for every child class
         klass[_CLASS_MEMBERS_OBJECT][_CHILD_CLASS] = klass;

@@ -184,7 +184,7 @@ TODO, for now see
 ./build.sh
 
 ## CHANGELOG
-
+* 2.0.1 - minor cleanup
 * 2.0.0 - class members syntax changed, 
 - there are 2 hierachies: instances and class member objects
 - constructor accepts now the class, not superclass,
