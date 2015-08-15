@@ -2,7 +2,7 @@
  *******************                                   Jassino                                 ***********************
  *******************      Very light, fast and well tested object orientation in Javascript    ***********************
  *********************************************************************************************************************
- *   version: 2.0.1
+ *   version: 2.0.2
  *
  *   Copyright (c)  Denis Volokhovski, 2015
  *
@@ -36,10 +36,7 @@ var Jassino = (function (Jassino) {
 
     //----------------- instance definitions
         _SUPER_CONSTRUCTOR_CALL = 'super', //super constructor call, e.g. this.super(_cls, args,... )
-        _SUPER_METHOD_CALL = 'supercall', //super method call, e.g. this.supercall(_cls, "method_name", args,... )
-
-    //----------------- meta data
-        _VALID_INSTANCE_MARKER = "__jassino__";
+        _SUPER_METHOD_CALL = 'supercall'; //super method call, e.g. this.supercall(_cls, "method_name", args,... )
 
     //--------------------------------------------------------------------------------------------------------------
     Jassino.DuplicationError = _make_exc("Duplication");
@@ -382,12 +379,12 @@ var Jassino = (function (Jassino) {
             klass = SuperClass ?
                 function () {
                     //condition shifted out of helper function for performance
-                    if (!this[_VALID_INSTANCE_MARKER]) _inst_err();          
-                    SuperClass.apply(this, arguments)
+                    if (!this[_CHILD_CLASS]) _inst_err();          
+                    SuperClass.apply(this, arguments);
                 }
                 :
                 function () {
-                    if (!this[_VALID_INSTANCE_MARKER]) _inst_err()
+                    if (!this[_CHILD_CLASS]) _inst_err();
                 };
             
         //------------------------------------- a function specified for the constructor -------------------------------
@@ -397,7 +394,7 @@ var Jassino = (function (Jassino) {
             // super constructor is a wrapper as well, so it will populate the inner-constructor 
             // with leading Super-SuperClass automatically
             klass = function _klass() {
-                if (!this[_VALID_INSTANCE_MARKER]) _inst_err();
+                if (!this[_CHILD_CLASS]) _inst_err();
                 try {
                     var args = slice(arguments);
                     args.unshift(_klass);
@@ -425,7 +422,7 @@ var Jassino = (function (Jassino) {
                         "_: '" + saved_ctor + "' -- Class and SuperClass shortcut notations must be present both!");
                 }
                 klass = function () {
-                    if (!this[_VALID_INSTANCE_MARKER]) _inst_err();
+                    if (!this[_CHILD_CLASS]) _inst_err();
                     for (var i = 0; i < ctorParams.length; i++)
                         this[ctorParams[i]] = arguments[i]
                 }
@@ -435,7 +432,7 @@ var Jassino = (function (Jassino) {
                     "__: '" + savedSuperArgsNumber + "'" + " assumes SuperClass presence");
 
                 klass = function () {
-                    if (!this[_VALID_INSTANCE_MARKER]) _inst_err();
+                    if (!this[_CHILD_CLASS]) _inst_err();
                     
                     SuperClass.apply(this, slice(arguments, 0, savedSuperArgsNumber));
 
@@ -493,25 +490,109 @@ var Jassino = (function (Jassino) {
                 >>>>>>>> RangeError: Maximum call stack size exceeded
                 super reference stay at the same object, because 'this' stay the same in all methods
             */
+            /*
+                Another story: Why John Resig's Inheritance implementation
+                (reference here: http://ejohn.org/blog/simple-javascript-inheritance)
+                is wrong in the way the Super Constructor/Method are called
+                
+                Consider part of his implementation 
+                prototype[name] = typeof prop[name] == "function" &&
+                        typeof _super[name] == "function" && fnTest.test(prop[name]) ?
+                        (function(name, fn){
+                          return function() {
+                            var tmp = this._super;
+                           
+                            // Add a new ._super() method that is the same method
+                            // but on the super-class
+                            this._super = _super[name];
+                           
+                            // The method only need to be bound temporarily, so we
+                            // remove it when we're done executing
+                            var ret = fn.apply(this, arguments);        
+                            this._super = tmp;
+                           
+                            return ret;
+                          };
+                        })(name, prop[name]) :
+                        prop[name];
+                        
+                 This code make wrappers for all instance methods whose instances have super classes 
+             
+                 Wrappers create a temporary '_super' reference 
+                 for original method call time frame (this._super = _super[name];),
+                 then restores it to previous state (this._super = tmp;)
+                 
+                 The problem can come when, one 2 methods called on the same class instance
+                 concurrently.
+                 
+                 Consider this pseudo code:
+                 
+                 class A: method db1, method db2, method exc
+                 class B inherits A:  overrides method db1, overrides method db2, overrides method exc
+             
+                 
+                 //Counter-example 1: references in async callbacks
+                 B.prototype.db1: function(callback){
+                    //_super --> B::db1
+                    this._super({action: 1}) // do job 1
+                    var _this = this;
+                    databaseLongCall({callback: function(result){
+                        if (!result){
+                            //some additional postponed call to the parent method
+                            _this._super({action: 2}) //BOOM! _super restored after db1 returned!
+                        }
+                        callback();
+                    });
+                    //...
+                    //at some point during databaseLongCallhappens B::db2
+                    //BOOM!, _super have been changed: _super --> B::db2 
+                    this._super({action: update, ..}) //do job 2... - undetermined behavior will happen
+                 }
+                 
+                 //Counter-example 2: exception breaking _super restoration mechanism 
+                 //this can be easily fixed by handling exceptions in the method wrapper
+                 B.prototype.db2: function(a, b){
+                    //this._super --> B::db2
+                    try {
+                        this.exc();
+                    } catch (e) {
+                        //some handling
+                    }
+                    this._super(a, b); //BOOM! this.exc() changed _this but not restored it!!!
+                 }
+                 
+                 B.prototype.exc = function(){
+                    //this._super --> exc
+                    throw Error("BOOM!");
+                 }
+                 
+                 ---------------------------------------------------------------------------------------------
+                 Jassino avoids these situations by injecting additional parameter via method wrapper
+                 that is exactly corresponds to the object being "closure-fixed" inside the concrete wrapper
+            */
+            
+            //define only once per a chain
+            //these methods are the same for all calls, as they 
+            // explicitly depends on Class and method name
+            if (! klass.prototype[_SUPER_CONSTRUCTOR_CALL]) {
+                // use like this.super(_cls, arg1,...)
+                // you may need $$.clsArg decorator to keep precise classes
+                klass.prototype[_SUPER_CONSTRUCTOR_CALL] = function (_cls) {
+                    return _cls[_SUPER_CLASS].apply(this, slice(arguments, 1))
+                };
 
-            // use like this.super(_cls, arg1,...)
-            // you may need $$.clsArg decorator to keep precise classes
-            klass.prototype[_SUPER_CONSTRUCTOR_CALL] = function (_cls) {
-                return _cls[_SUPER_CLASS].apply(this, slice(arguments, 1))
-            };
-
-            //------------------ super method call ------------------------------------------
-            // use like this.supercall(_cls, method_name, arg1,...)
-            // you may need $$.clsArg decorator to keep precise classes
-            klass.prototype[_SUPER_METHOD_CALL] = function (_cls, method) {
-                return _cls[_SUPER_CLASS].prototype[method].apply(this, slice(arguments, 2))
-            };
-
+                //------------------ super method call ------------------------------------------
+                // use like this.supercall(_cls, method_name, arg1,...)
+                // you may need $$.clsArg decorator to keep precise classes
+                klass.prototype[_SUPER_METHOD_CALL] = function (_cls, method) {
+                    return _cls[_SUPER_CLASS].prototype[method].apply(this, slice(arguments, 2))
+                };
+            }
             //----------------------- class-level super reference -------------
             //WARNING! this should go AFTER _extend() with SuperClass
             klass[_SUPER_CLASS] = SuperClass;
 
-        }else {
+        } else { //this is the first class in the Jassino chain - add some common methods here
             klass[_CLASS_MEMBERS_OBJECT] = {};
         }
         //--------------------------- mixins handling -----------------------------------------------
@@ -543,12 +624,10 @@ var Jassino = (function (Jassino) {
         klass[_CLASS_NAME] = data.name;
         
         //== this.__child__ and cls.__child__ 
-        // always contain LAST child class in the prototype chain!!! ==
+        // always contain LAST child class in the prototype chain!!!
+        //REWRITE this to the every new prototype
         klass.prototype[_CHILD_CLASS] = klass;
         
-        //--------------------static marker, pointing that object is in the jassino chain----------------------
-        klass.prototype[_VALID_INSTANCE_MARKER] = true;
-
         return klass;
     };
 
